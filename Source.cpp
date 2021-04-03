@@ -68,6 +68,8 @@ std::string displayFormat = "%.3f";
 
 GLuint noiseTex;
 
+//Debug
+float counter = 0;
 
 //Cubes
 //std::vector<cube> cubes;
@@ -363,21 +365,24 @@ void draw(Shader baseShader) {
     glBindTexture(GL_TEXTURE_2D, noiseTex);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 5.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    projMatrix = glm::ortho(-10.0f, 10.0f, -10.5f, 10.5f, -10.0f, 10.0f);
+    mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    projMatrix = glm::ortho(-2.0f, 2.0f, -2.5f, 2.5f, -1.0f, 1.0f);
 
+    baseShader.setVec3("lightPos", glm::vec3(std::sin(counter*50.0f*3.14159f), std::sin(counter * 50.0f * 3.14159f), 2.0f));
     baseShader.setMat4("mv_matrix", mvMatrix);
     baseShader.setMat4("proj_matrix", projMatrix);
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
     if (chunks.size()) {
-        for (auto cube : chunks[0].cubes) {
-            std::vector<glm::vec3> tris = cube.triangles;
-            //std::cout << tris.size() << "\n";
-            if (tris.size()) {
-                glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(glm::vec3), &tris[0], GL_STATIC_DRAW);
-                glDrawArrays(GL_TRIANGLES, 0, tris.size());
+        for (auto i : chunks) {
+            for (auto cube : i.cubes) {
+                std::vector<glm::vec3> tris = cube.triangles;
+                //std::cout << tris.size() << "\n";
+                if (tris.size()) {
+                    glBufferData(GL_ARRAY_BUFFER, tris.size() * sizeof(glm::vec3), &tris[0], GL_STATIC_DRAW);
+                    glDrawArrays(GL_TRIANGLES, 0, tris.size());
+                }
             }
         }
     }
@@ -404,14 +409,21 @@ void test() {
     //cube newCube = cube(vertexCoord, noise);
     //newCube.generateTriangles();
     //cubes.push_back(newCube);
-
-    chunk newChunk = chunk(glm::vec3(0.0f),2,1.0f);
-    newChunk.generateCubes();
-    for (auto cube : newChunk.cubes) {
-        //cube.generateTriangles();
-        std::cout << cube.triangles.size() << "\n";
+    for (int i = 0;i < 10;i++) {
+        for (int j = 0;j < 10;j++) {
+            for (int k = 0;k < 10;k++) {
+                chunk newChunk = chunk(glm::vec3(i,j,k), 2, 1.0f);
+                newChunk.generateCubes();
+                //for (auto cube : newChunk.cubes) {
+                    //cube.generateTriangles();
+                    //std::cout << cube.triangles.size() << "\n";
+                    //;
+                //}
+                chunks.push_back(newChunk);
+            }
+        }
     }
-    chunks.push_back(newChunk);
+    
     return;
 }
 int main() {
@@ -428,6 +440,8 @@ int main() {
 
     while (!glfwWindowShouldClose(window))
     {
+        counter += 0.1;
+
         processInput(window);
         cursor_position_callback(window, xpos, ypos);
 

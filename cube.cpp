@@ -275,6 +275,10 @@ void cube::generateTriangles() {
 	std::vector<glm::vec3> edgeCoords;
 	//std::cout << vertexCoord.size();
 	for (int i = 0;i < 12;i++) {
+		if (i == 3) {
+			edgeCoords.push_back((vertexCoord[0] + vertexCoord[3]) / 2.0f);
+			continue;
+		}
 		if (i == 7) {
 			edgeCoords.push_back((vertexCoord[4] + vertexCoord[7]) / 2.0f);
 			continue;
@@ -283,13 +287,13 @@ void cube::generateTriangles() {
 			edgeCoords.push_back((vertexCoord[i%4] + vertexCoord[i%4 + 4]) / 2.0f);
 			continue;
 		}
-		std::cout << "aaa "<< (((vertexCoord[i % 8]).x == (vertexCoord[(i + 1) % 8]).x) && ((vertexCoord[i % 8]).y == (vertexCoord[(i + 1) % 8]).y) && ((vertexCoord[i % 8]).z == (vertexCoord[(i + 1) % 8]).z)) << "\n";
+		//std::cout << "aaa "<< (((vertexCoord[i % 8]).x == (vertexCoord[(i + 1) % 8]).x) && ((vertexCoord[i % 8]).y == (vertexCoord[(i + 1) % 8]).y) && ((vertexCoord[i % 8]).z == (vertexCoord[(i + 1) % 8]).z)) << "\n";
 		edgeCoords.push_back((vertexCoord[i%8] + vertexCoord[(i + 1)%8]) / 2.0f);
 	}
-	for (auto i : edgeCoords) {
+	/*for (auto i : edgeCoords) {
 		std::cout << i.x << " " << i.y << " " << i.z << "\n";
 	}
-	std::cout << "\n\n";
+	std::cout << "\n\n";*/
 	//std::cout << index << "\n";
 	//std::cout << edgeTriangle[index] << "\n";
 	for (int i = 0;i < edgeTriangle[index]*3;i+=3) {

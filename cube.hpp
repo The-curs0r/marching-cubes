@@ -41,10 +41,10 @@ public:
 		SimplexNoise simplexNoise;
 		for (int i = 0;i < 8;i++) {
 			int ind = vertexCoord.size() - 1 - i;
-			std::cout << vertexCoord[ind].x << " " << vertexCoord[ind].y << " " << vertexCoord[ind].z << "\n";
-			noise.push_back(simplexNoise.noise(vertexCoord[ind].x, vertexCoord[ind].y, vertexCoord[ind].z));
+			//std::cout << vertexCoord[ind].x << " " << vertexCoord[ind].y << " " << vertexCoord[ind].z << "\n";
+			noise.push_back(simplexNoise.noise(vertexCoord[ind].x, vertexCoord[ind].y, vertexCoord[ind].z)-0.2f);
 		}
-		std::cout << "\n\n";
+		//std::cout << "\n\n";
 		std::reverse(noise.begin(), noise.end());
 		vertexNoise = noise;
 	}

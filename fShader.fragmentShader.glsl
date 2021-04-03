@@ -3,6 +3,7 @@
 out vec4 color;
 
 uniform sampler2D noise;
+uniform vec3 lightPos = vec3(0.0f,0.0f,0.0f);
 in GS_OUT{
 	vec2 vUv;
 	vec3 normal;
@@ -21,7 +22,7 @@ void main(void) {
 	//color = vec4(vec3(temp), 1.0f);
 	//color = texture(noise, vUv);
 
-	highp vec3 L = normalize(vec3(2.0f,2.0f,0.0f) - fs_in.worldPos);
+	highp vec3 L = normalize(lightPos - fs_in.worldPos);
 	highp float NL = max(dot(fs_in.normal, L), 0.0);
 	highp vec3 colort = vec3(1, 1, 0.0);
 	color = vec4(colort * NL, 1.0);
