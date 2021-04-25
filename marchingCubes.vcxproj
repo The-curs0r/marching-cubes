@@ -151,6 +151,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="chunk.cpp" />
+    <ClCompile Include="control.cpp" />
     <ClCompile Include="cube.cpp" />
     <ClCompile Include="Deps\glad\src\glad.c" />
     <ClCompile Include="Deps\imgui\backends\imgui_impl_glfw.cpp" />
@@ -166,6 +167,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chunk.hpp" />
+    <ClInclude Include="control.hpp" />
     <ClInclude Include="cube.hpp" />
     <ClInclude Include="Deps\imgui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="Deps\imgui\backends\imgui_impl_opengl3.h" />

@@ -9,6 +9,8 @@ imgui.ini
 SimplexNoise.h
 stb_image.h
 SimplexNoise.cpp
+*.tga
+*.png
 
 # User-specific files
 *.rsuser

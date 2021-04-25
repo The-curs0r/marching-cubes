@@ -21,10 +21,10 @@ void main(void) {
 	//temp += texture(noise, vUv).x;
 	//color = vec4(vec3(temp), 1.0f);
 	//color = texture(noise, vUv);
-
-	highp vec3 L = normalize(lightPos - fs_in.worldPos);
-	highp float NL = max(dot(fs_in.normal, L), 0.0);
-	highp vec3 colort = vec3(1, 1, 0.0);
-	color = vec4(colort * NL, 1.0);
+	vec3 lightPosa = vec3(0.0f, 0.0f, -0.1f);
+	highp vec3 L = lightPosa - fs_in.worldPos;
+	highp float NL = max(dot(fs_in.normal, normalize(L)), 0.0);
+	highp vec3 colort = vec3(1, 1, 1.0)/max(1.0,pow(length(L),2));
+	color = vec4(colort * NL * 0.8, 1.0);
 
 }

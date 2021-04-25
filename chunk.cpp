@@ -5,6 +5,7 @@
 
 void chunk::generateCubes() {
 	float inc = dim / numCubes;
+	/*std::cout << inc<<"\n";*/
 	for (float z = 0;z < numCubes;z++) {
 		for (float y = 0; y < numCubes;y++) {
 			for (float x = 0;x < numCubes;x++) {

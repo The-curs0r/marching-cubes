@@ -37,6 +37,8 @@ using namespace gl;
 #include "shader.hpp"
 //#include "cube.hpp"
 #include "chunk.hpp"
+#include "control.hpp"
+
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -74,6 +76,9 @@ float counter = 0;
 //Cubes
 //std::vector<cube> cubes;
 std::vector<chunk> chunks;
+
+//Tris
+std::vector<glm::vec3> finalTris;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
@@ -275,7 +280,7 @@ void takeSS() {
     //Saving as .TGA
     int rowSize = ((SCR_WIDTH * 3 + 3) & ~3);
     int dataSize = SCR_HEIGHT * rowSize;
-    std::cout << "Image size " << dataSize << "\n";
+    //std::cout << "Image size " << dataSize << "\n";
     unsigned char* data = new unsigned char[dataSize];
 #pragma pack (push,1) //Aligns structure members on 1-byte boundaries, or on their natural alignment boundary, whichever is less.
     struct
@@ -362,18 +367,26 @@ void cleanUp() {
     return;
 }
 void draw(Shader baseShader) {
+    computeMatricesFromInputs(window);
+
     glBindTexture(GL_TEXTURE_2D, noiseTex);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-    projMatrix = glm::ortho(-2.0f, 2.0f, -2.5f, 2.5f, -1.0f, 1.0f);
+
+    glm::mat4 ProjectionMatrix = getProjectionMatrix();
+    glm::mat4 ViewMatrix = getViewMatrix();
+    baseShader.setMat4("mv_matrix", ViewMatrix);
+    baseShader.setMat4("proj_matrix", ProjectionMatrix);
+    //mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+    //projMatrix = glm::ortho(-2.0f, 2.0f, -2.5f, 2.5f, -1.0f, 1.0f);
 
     baseShader.setVec3("lightPos", glm::vec3(std::sin(counter*50.0f*3.14159f), std::sin(counter * 50.0f * 3.14159f), 2.0f));
-    baseShader.setMat4("mv_matrix", mvMatrix);
-    baseShader.setMat4("proj_matrix", projMatrix);
+    //baseShader.setMat4("mv_matrix", mvMatrix);
+    //baseShader.setMat4("proj_matrix", projMatrix);
     glBindVertexArray(vao);
     glBindBuffer(GL_ARRAY_BUFFER, vbo);
 
+    /*
     if (chunks.size()) {
         for (auto i : chunks) {
             for (auto cube : i.cubes) {
@@ -386,6 +399,14 @@ void draw(Shader baseShader) {
             }
         }
     }
+    */
+    
+    if (finalTris.size()) {
+        glBufferData(GL_ARRAY_BUFFER, finalTris.size() * sizeof(glm::vec3), &finalTris[0], GL_STATIC_DRAW);
+        glDrawArrays(GL_TRIANGLES, 0, finalTris.size());
+    }
+    
+   
    
 
     /*std::vector<glm::vec3> tris = cubes[0].triangles;
@@ -395,6 +416,22 @@ void draw(Shader baseShader) {
 
     return;
 }
+
+void calcTris() {
+    if (chunks.size()) {
+        for (auto i : chunks) {
+            for (auto cube : i.cubes) {
+                std::vector<glm::vec3> tris = cube.triangles;
+                //std::cout << tris.size() << "\n";
+                if (tris.size()) {
+                    finalTris.insert(finalTris.end(), tris.begin(), tris.end());
+                }
+            }
+        }
+    }
+    std::cout << finalTris.size() << " " << finalTris.size() * sizeof(glm::vec3) << "\n";
+}
+
 void test() {
     //std::vector<float> noise = {-1.0,.5f,-0.6f,-0.8f,-0.3f,-0.7f,1.4f,-0.6f};
     //std::vector<glm::vec3> vertexCoord;
@@ -409,10 +446,15 @@ void test() {
     //cube newCube = cube(vertexCoord, noise);
     //newCube.generateTriangles();
     //cubes.push_back(newCube);
-    for (int i = 0;i < 10;i++) {
-        for (int j = 0;j < 10;j++) {
-            for (int k = 0;k < 10;k++) {
-                chunk newChunk = chunk(glm::vec3(i,j,k), 2, 1.0f);
+    int xrange = 10;
+    int yrange = 10;
+    int zrange = 10;
+    int numCubes = 8;
+    float length = 1.0f;
+    for (int i = 0;i < xrange;i++) {
+        for (int j = 0;j < yrange;j++) {
+            for (int k = 0;k < zrange;k++) {
+                chunk newChunk = chunk(glm::vec3(i,j,k), numCubes , length);
                 newChunk.generateCubes();
                 //for (auto cube : newChunk.cubes) {
                     //cube.generateTriangles();
@@ -423,7 +465,7 @@ void test() {
             }
         }
     }
-    
+    calcTris();
     return;
 }
 int main() {
@@ -491,9 +533,9 @@ int main() {
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(10.0f, 0.0f));
             ImGui::SameLine();
-            if (ImGui::Button("Take Screenshot")) {
+            /*if (ImGui::Button("Take Screenshot")) {
                 takeImage = 1;
-            }
+            }*/
         }
         ImGui::End();
         ImGui::Render();
