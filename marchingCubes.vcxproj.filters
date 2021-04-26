@@ -57,6 +57,12 @@
     <ClCompile Include="control.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="vboIndexer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="triangleFace.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Deps\imgui\imconfig.h">
@@ -92,9 +98,6 @@
     <ClInclude Include="stb_image.h">
       <Filter>Source Files</Filter>
     </ClInclude>
-    <ClInclude Include="gShader.geometryShader.glsl">
-      <Filter>Source Files</Filter>
-    </ClInclude>
     <ClInclude Include="chunk.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
@@ -105,6 +108,12 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="control.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="vboIndexer.hpp">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="triangleFace.hpp">
       <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>

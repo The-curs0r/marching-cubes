@@ -1,17 +1,3 @@
-/**
-	* File:    control.cpp
-	*
-	* Author1:  Akshay Tiwari (2018A7PS0201H)
-	* Author2:  Mushkan Surekha  (2018B5A70477H)
-	* Author3:  Mahesh Swaminathan  (2018A4PS0982H)
-	* Date:     09-04-2020
-	* Course:   Computer Graphics (IS F311)
-	*
-	* Summary of File:
-	*
-	*   Program to control the movement of camera around the scene using
-	*	either mouse or keyboard inputs as desired by the user.
-*/
 #include <GLFW/glfw3.h>
 extern GLFWwindow* window; ///<Current context window
 #include <glm/glm.hpp>
@@ -22,18 +8,12 @@ using namespace glm;
 
 glm::mat4 ViewMatrix;///<Output View Matrix
 glm::mat4 ProjectionMatrix;///<Output Projection Matrix
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);///<Initial camera location
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);///<Initial camera front location (view direction)
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);///<Initial camera up direction
 glm::vec3 position = glm::vec3(0, 0, 2);///<Initial position on +Z
 float horizontalAngle = 3.14f;///<Initial horizontal angle : toward -Z
 float verticalAngle = 0.0f;///<Initial vertical angle : none
 float initialFoV = 45.0f;///<Initial Field of View
 float speed = 1.0f;///<Speed of viweing
 float mouseSpeed = 0.001f;///<Cursor movement speed
-float yaw = 0;///<Initial yaw
-float pitch = 0;///<Initial pitch
-float roll = 0;///<Initial roll
 float FoV = initialFoV;///<Initial Field Of View
 glm::vec3 center;///<Center vector
 glm::vec3 up;//Up vector
@@ -84,7 +64,6 @@ void computeMatricesFromInputs(GLFWwindow* window) {
 	center = position + direction;
 	ViewMatrix = glm::lookAt(position, position + direction, up);
 	lastTime = currentTime;
-	
 	ProjectionMatrix = glm::perspective(glm::radians(FoV), 16.0f / 9.0f, 0.1f, 100.0f);
 }
 

@@ -2,8 +2,6 @@
 
 layout(local_size_x = 8) in;
 
-//uniform float length;
-//uniform float numCubes;
 uniform vec3 stPoint;
 uniform float inc;
 const int numCubes = 16;
@@ -12,7 +10,6 @@ layout(binding = 0) writeonly buffer block2
 {
     float output_data[numCubes * numCubes * numCubes * 8];
 };
-
 
 //Simplex Noise from https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
 vec4 permute(vec4 x) { return mod(((x * 34.0) + 1.0) * x, 289.0); }
@@ -119,4 +116,5 @@ void main(void)
         break;
     }
     output_data[gl_LocalInvocationIndex + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 8] = val;//gl_LocalInvocationIndex + (gl_WorkGroupID.x * 8 * 8 + gl_WorkGroupID.y * 8 + gl_WorkGroupID.z) * 8;// snoise(stPoint + vec3(gl_GlobalInvocationID.x * inc, gl_GlobalInvocationID.y * inc, gl_GlobalInvocationID.z * inc));
+    //output_data[gl_LocalInvocationIndex + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 8].vertexGrad = val.xyz;
 }

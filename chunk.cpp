@@ -17,7 +17,6 @@ void chunk::generateCubes() {
 	}
 	return;
 }
-
 void chunk::generateCubes(float *noise) {
 	float inc = dim / numCubes;
 	/*std::cout << inc<<"\n";*/

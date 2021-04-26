@@ -9,6 +9,7 @@ class cube {
 private:
 	std::vector<float> vertexNoise;
 	std::vector<glm::vec3> vertexCoord;
+	std::vector<glm::vec3> vertexNormal;
 public:
 	std::vector<glm::vec3> triangles;
 	void generateTriangles();

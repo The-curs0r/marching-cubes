@@ -168,6 +168,8 @@
     <ClCompile Include="Deps\imgui\imgui_widgets.cpp" />
     <ClCompile Include="SimplexNoise.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="triangleFace.cpp" />
+    <ClCompile Include="vboIndexer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="chunk.hpp" />
@@ -182,10 +184,11 @@
     <ClInclude Include="Deps\imgui\imstb_rectpack.h" />
     <ClInclude Include="Deps\imgui\imstb_textedit.h" />
     <ClInclude Include="Deps\imgui\imstb_truetype.h" />
-    <ClInclude Include="gShader.geometryShader.glsl" />
     <ClInclude Include="shader.hpp" />
     <ClInclude Include="SimplexNoise.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="triangleFace.hpp" />
+    <ClInclude Include="vboIndexer.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="cShader.computeShader.glsl" />
