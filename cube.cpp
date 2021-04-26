@@ -290,6 +290,22 @@ void cube::generateTriangles() {
 		//std::cout << "aaa "<< (((vertexCoord[i % 8]).x == (vertexCoord[(i + 1) % 8]).x) && ((vertexCoord[i % 8]).y == (vertexCoord[(i + 1) % 8]).y) && ((vertexCoord[i % 8]).z == (vertexCoord[(i + 1) % 8]).z)) << "\n";
 		edgeCoords.push_back((vertexCoord[i%8] + vertexCoord[(i + 1)%8]) / 2.0f);
 	}
+	//for (int i = 0;i < 12;i++) {
+	//	if (i == 3) {
+	//		edgeCoords.push_back((vertexCoord[0] * vertexNoise[0] + vertexCoord[3] * vertexNoise[3]) / (vertexNoise[0] + vertexNoise[3]));
+	//		continue;
+	//	}
+	//	if (i == 7) {
+	//		edgeCoords.push_back((vertexCoord[4] * vertexNoise[4] + vertexCoord[7] * vertexNoise[7]) / (vertexNoise[4] + vertexNoise[7]));
+	//		continue;
+	//	}
+	//	if (i >= 8) {
+	//		edgeCoords.push_back((vertexCoord[i % 4] * vertexNoise[i % 4] + vertexCoord[i % 4 + 4] * vertexNoise[i % 4 + 4]) / (vertexNoise[i % 4] + vertexNoise[i % 4 + 4]));
+	//		continue;
+	//	}
+	//	//std::cout << "aaa "<< (((vertexCoord[i % 8]).x == (vertexCoord[(i + 1) % 8]).x) && ((vertexCoord[i % 8]).y == (vertexCoord[(i + 1) % 8]).y) && ((vertexCoord[i % 8]).z == (vertexCoord[(i + 1) % 8]).z)) << "\n";
+	//	edgeCoords.push_back((vertexCoord[i % 8] * vertexNoise[i % 8] + vertexCoord[(i + 1) % 8] * vertexNoise[(i + 1) % 8]) / (vertexNoise[i % 8] + vertexNoise[(i + 1) % 8]));
+	//}
 	/*for (auto i : edgeCoords) {
 		std::cout << i.x << " " << i.y << " " << i.z << "\n";
 	}
