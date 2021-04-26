@@ -452,55 +452,65 @@ void test() {
     //cube newCube = cube(vertexCoord, noise);
     //newCube.generateTriangles();
     //cubes.push_back(newCube);
-    int xrange = 5;
-    int yrange = 5;
-    int zrange = 5;
+    int xrange = 2;
+    int yrange = 2;
+    int zrange = 2;
     const int numCubes = 16; //Change in compute shader too
-    float length = 5.0f;
+    float length = 4.0f;
 
     for (int i = 0;i < xrange;i++) {
         for (int j = 0;j < yrange;j++) {
             for (int k = 0;k < zrange;k++) {
                 
-                //Shader computeShader("cShader.computeShader.glsl");
-                //computeShader.use();
-                //computeShader.setFloat("inc", length / numCubes);
-                //computeShader.setInt("numCubes", numCubes);
-                //computeShader.setVec3("stPoint", glm::vec3(i, j, k));
-                //float output_data[numCubes * numCubes * numCubes * 8]; //Number of total vertices
-                //GLuint  data_buffer[1];
-                //glGenBuffers(1, data_buffer);
-                //int NUM_ELEMENTS = numCubes * numCubes * numCubes * 8;
-                //glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
-                //glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(float), NULL, GL_DYNAMIC_COPY);
+                //chunk newChunk = chunk(glm::vec3(i, j, k), numCubes, length);
+                //newChunk.generateCubes();
+                ////for (auto cube : newChunk.cubes) {
+                //    //cube.generateTriangles();
+                //    //std::cout << cube.triangles.size() << "\n";
+                //    //;
+                ////}
+                //chunks.push_back(newChunk);
 
-                //glShaderStorageBlockBinding(computeShader.ID, 0, 0);
+                Shader computeShader("cShader.computeShader.glsl");
+                computeShader.use();
+                computeShader.setFloat("inc", length / numCubes);
+                computeShader.setInt("numCubes", numCubes);
+                computeShader.setVec3("stPoint", glm::vec3(i, j, k));
+                float output_data[numCubes * numCubes * numCubes * 8]; //Number of total vertices
+                GLuint  data_buffer[1];
+                glGenBuffers(1, data_buffer);
+                int NUM_ELEMENTS = numCubes * numCubes * numCubes * 8;
+                glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
+                glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(float), NULL, GL_DYNAMIC_COPY);
 
-                //glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(float) * NUM_ELEMENTS);
-                //computeShader.use();
+                glShaderStorageBlockBinding(computeShader.ID, 0, 0);
 
-                //glDispatchCompute(numCubes, numCubes, numCubes);
+                glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(float) * NUM_ELEMENTS);
+                computeShader.use();
 
-                //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-                //glFinish();
+                glDispatchCompute(numCubes, numCubes, numCubes);
 
-                //glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(float) * NUM_ELEMENTS);
-                //float* ptr = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * NUM_ELEMENTS, GL_MAP_READ_BIT);
-                //while (NUM_ELEMENTS--) {
-                //    output_data[numCubes * numCubes * numCubes * 8 - NUM_ELEMENTS - 1] = *ptr;
+                glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                glFinish();
+
+                glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(float) * NUM_ELEMENTS);
+                float* ptr = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+                while (NUM_ELEMENTS--) {
+                    output_data[numCubes * numCubes * numCubes * 8 - NUM_ELEMENTS - 1] = *ptr;
                 //    //std::cout << *ptr << "\n";
-                //    ptr++;
-                //}
-                //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-                chunk newChunk = chunk(glm::vec3(i,j,k), numCubes , length);
-                newChunk.generateCubes();
-                //newChunk.generateCubes(output_data);
-                //for (auto cube : newChunk.cubes) {
-                    //cube.generateTriangles();
-                    //std::cout << cube.triangles.size() << "\n";
-                    //;
-                //}
+                    ptr++;
+                }
+                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                
+                chunk newChunk = chunk(glm::vec3(i, j, k), numCubes, length);
+                newChunk.generateCubes(output_data);
+                ////for (auto cube : newChunk.cubes) {
+                //    //cube.generateTriangles();
+                //    //std::cout << cube.triangles.size() << "\n";
+                //    //;
+                ////}
                 chunks.push_back(newChunk);
+
             }
         }
     }

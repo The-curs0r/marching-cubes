@@ -10,6 +10,6 @@ out VS_OUT{
 }vs_out;
 
 void main(void) {
-	vs_out.vUv = vertex.xy * madd + madd; ;
+	vs_out.vUv = vertex.xy * madd + madd;
 	gl_Position = proj_matrix * mv_matrix * vec4(vertex, 1.0f);
 }
