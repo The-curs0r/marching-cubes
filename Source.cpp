@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <string>
 
+#include <utility>
+
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -50,6 +52,7 @@ using namespace gl;
 GLFWwindow* window;
 const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
+const int MAX_THREADS = 4;
 
 glm::mat3 mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 glm::mat3 projMatrix = glm::ortho(-0.5f, 0.5f, -0.5f, 0.5f, -1.0f, 1.0f);
@@ -419,8 +422,10 @@ void draw(Shader baseShader) {
 
 void calcTris() {
     if (chunks.size()) {
+        int cnt = 0;
         for (auto i : chunks) {
             for (auto cube : i.cubes) {
+                cnt++;
                 std::vector<glm::vec3> tris = cube.triangles;
                 //std::cout << tris.size() << "\n";
                 if (tris.size()) {
@@ -428,6 +433,7 @@ void calcTris() {
                 }
             }
         }
+        std::cout << cnt << "\n";
     }
     std::cout << finalTris.size() << " " << finalTris.size() * sizeof(glm::vec3) << "\n";
 }
@@ -446,16 +452,49 @@ void test() {
     //cube newCube = cube(vertexCoord, noise);
     //newCube.generateTriangles();
     //cubes.push_back(newCube);
-    int xrange = 10;
-    int yrange = 10;
-    int zrange = 10;
-    int numCubes = 8;
-    float length = 1.0f;
+    int xrange = 5;
+    int yrange = 5;
+    int zrange = 5;
+    const int numCubes = 16; //Change in compute shader too
+    float length = 5.0f;
+
     for (int i = 0;i < xrange;i++) {
         for (int j = 0;j < yrange;j++) {
             for (int k = 0;k < zrange;k++) {
+                
+                //Shader computeShader("cShader.computeShader.glsl");
+                //computeShader.use();
+                //computeShader.setFloat("inc", length / numCubes);
+                //computeShader.setInt("numCubes", numCubes);
+                //computeShader.setVec3("stPoint", glm::vec3(i, j, k));
+                //float output_data[numCubes * numCubes * numCubes * 8]; //Number of total vertices
+                //GLuint  data_buffer[1];
+                //glGenBuffers(1, data_buffer);
+                //int NUM_ELEMENTS = numCubes * numCubes * numCubes * 8;
+                //glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
+                //glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(float), NULL, GL_DYNAMIC_COPY);
+
+                //glShaderStorageBlockBinding(computeShader.ID, 0, 0);
+
+                //glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(float) * NUM_ELEMENTS);
+                //computeShader.use();
+
+                //glDispatchCompute(numCubes, numCubes, numCubes);
+
+                //glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                //glFinish();
+
+                //glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(float) * NUM_ELEMENTS);
+                //float* ptr = (float*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(float) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+                //while (NUM_ELEMENTS--) {
+                //    output_data[numCubes * numCubes * numCubes * 8 - NUM_ELEMENTS - 1] = *ptr;
+                //    //std::cout << *ptr << "\n";
+                //    ptr++;
+                //}
+                //glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
                 chunk newChunk = chunk(glm::vec3(i,j,k), numCubes , length);
                 newChunk.generateCubes();
+                //newChunk.generateCubes(output_data);
                 //for (auto cube : newChunk.cubes) {
                     //cube.generateTriangles();
                     //std::cout << cube.triangles.size() << "\n";
@@ -468,6 +507,33 @@ void test() {
     calcTris();
     return;
 }
+
+void compute() {
+
+    //const GLubyte* vendor = glGetString(GL_VENDOR); // Returns the vendor
+    //const GLubyte* renderer = glGetString(GL_RENDERER); // Returns a hint to the model
+
+    //std::cout << vendor << "\n";
+    //std::cout << renderer << "\n";
+
+
+    //int NumberOfExtensions;
+    //glGetIntegerv(GL_NUM_EXTENSIONS, &NumberOfExtensions);
+    //std::cout << NumberOfExtensions << "\n";
+    //for (int i = 0; i < NumberOfExtensions; i++) {
+    //    const GLubyte* ccc = glGetStringi(GL_EXTENSIONS, i);
+    //    std::cout << ccc << "\n";
+    //    if (strcmp((const char*)ccc, (const char*)"GL_EXT_shader_16bit_storage") == 0) {
+    //        // The extension is supported by our hardware and driver
+    //        // Try to get the "glDebugMessageCallbackARB" function :
+    //        std::cout << "yeye\n";
+    //    }
+    //}
+    
+
+    return;
+}
+
 int main() {
 
     if (initialize() < 0)
@@ -476,6 +542,11 @@ int main() {
     test();
 
     Shader baseShader("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl", "gShader.geometryShader.glsl");
+    baseShader.use();
+
+    compute();
+    
+
     baseShader.use();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);

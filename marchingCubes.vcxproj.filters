@@ -115,5 +115,6 @@
     <None Include="vShader.vertexShader.glsl">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="cShader.computeShader.glsl" />
   </ItemGroup>
 </Project>

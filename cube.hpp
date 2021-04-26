@@ -44,6 +44,7 @@ public:
 			//std::cout << vertexCoord[ind].x << " " << vertexCoord[ind].y << " " << vertexCoord[ind].z << "\n";
 			noise.push_back(simplexNoise.noise(vertexCoord[ind].x, vertexCoord[ind].y, vertexCoord[ind].z));
 		}
+		//std::cout << noise.size()<<"\n";
 		//std::cout << "\n\n";
 		std::reverse(noise.begin(), noise.end());
 		vertexNoise = noise;

@@ -15,6 +15,7 @@ private:
 public:
 	std::vector<cube> cubes;
 	void generateCubes();
+	void generateCubes(float *);
 	//Constructors
 	chunk(glm::vec3 coord, int cubes, float length) {
 		startPoint = coord;
