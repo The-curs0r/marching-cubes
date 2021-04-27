@@ -193,6 +193,7 @@
   <ItemGroup>
     <None Include="cShader.computeShader.glsl" />
     <None Include="fShader.fragmentShader.glsl" />
+    <None Include="marchShader.computeShader.glsl" />
     <None Include="vShader.vertexShader.glsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -4,7 +4,7 @@ layout(local_size_x = 8) in;
 
 uniform vec3 stPoint;
 uniform float inc;
-const int numCubes = 16;
+const int numCubes = 32;
 
 layout(binding = 0) writeonly buffer block2
 {
@@ -84,6 +84,8 @@ float snoise(vec3 v) {
         dot(p2, x2), dot(p3, x3)));
 }
 
+
+
 void main(void)
 {
     vec3 coord = stPoint + vec3(gl_WorkGroupID.x *inc , gl_WorkGroupID.y * inc, gl_WorkGroupID.z * inc);
@@ -116,5 +118,6 @@ void main(void)
         break;
     }
     output_data[gl_LocalInvocationIndex + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 8] = val;//gl_LocalInvocationIndex + (gl_WorkGroupID.x * 8 * 8 + gl_WorkGroupID.y * 8 + gl_WorkGroupID.z) * 8;// snoise(stPoint + vec3(gl_GlobalInvocationID.x * inc, gl_GlobalInvocationID.y * inc, gl_GlobalInvocationID.z * inc));
+
     //output_data[gl_LocalInvocationIndex + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 8].vertexGrad = val.xyz;
 }

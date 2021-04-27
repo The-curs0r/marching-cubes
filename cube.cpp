@@ -310,7 +310,7 @@ void cube::generateTriangles() {
 		std::cout << i.x << " " << i.y << " " << i.z << "\n";
 	}
 	std::cout << "\n\n";*/
-	//std::cout << index << "\n";
+	std::cout << index << "\n";
 	//std::cout << edgeTriangle[index] << "\n";
 	for (int i = 0;i < edgeTriangle[index]*3;i+=3) {
 		triangles.push_back(edgeCoords[triTable[index][i]]); 
