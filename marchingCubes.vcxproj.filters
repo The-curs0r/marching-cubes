@@ -103,5 +103,14 @@
     <None Include="marchShader.computeShader.glsl">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="fShaderFlat.fragmentShader.glsl">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="gShaderFlat.geometryShader.glsl">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="vShaderFlat.vertexShader.glsl">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
 </Project>
