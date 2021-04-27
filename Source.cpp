@@ -48,6 +48,9 @@ GLFWwindow* window;
 const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
 glm::vec3 pos = glm::vec3(0.0f,0.0f,2.0f);
+
+GLuint infinitevao, infinitevbo;
+
 GLuint vaot, vbot, nbot, ebot;
 GLuint fbo, resTex, resDep;
 GLuint mul_fbo, mul_resTex, mul_resDep;
@@ -63,6 +66,9 @@ std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
 std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to stored indexed normals
+int infinite = 1;
+std::vector<glm::vec3> infiniteTris[64];
+glm::vec3 infiniteCenters[64];
 
 int triTablea[256][16] =
 { {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -430,6 +436,14 @@ int initialize() {
         return 1;
     }
 
+    glGenVertexArrays(1, &infinitevao);
+    glBindVertexArray(infinitevao);
+
+    glGenBuffers(1, &infinitevbo);
+    glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
     //Rendering into FBO
     glCreateFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -612,9 +626,10 @@ void calcTris() {
 }
 
 
-void generateTriangles() {
+void generateTriangles(int flag, int ind, int xOff, int yOff, int zOff) {
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
+    if (!flag) {  
         for (int i = 0;i < xrange;i++) {
             for (int j = 0;j < yrange;j++) {
                 for (int k = 0;k < zrange;k++) {
@@ -674,10 +689,70 @@ void generateTriangles() {
             }
         }
         calcTris();
-        return;
+    }
+    else {
+        Shader computeShader("marchShader.computeShader.glsl");
+        computeShader.use();
+        computeShader.setFloat("inc", length / numCubes);
+        computeShader.setInt("numCubes", numCubes);
+        glm::vec3 pos = getPosition();
+        pos.x += (xOff + 0.5f);
+        pos.y += (yOff + 0.5f);
+        pos.z += (zOff + 0.5f);
+        infiniteCenters[ind] = pos;
+        computeShader.setVec3("stPoint", pos);
+
+        GLuint  data_buffer[2];
+        int NUM_ELEMENTS = numCubes * numCubes * numCubes * 15;
+
+        glGenBuffers(2, data_buffer);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(glm::vec4), NULL, GL_DYNAMIC_COPY);
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
+
+        glShaderStorageBlockBinding(computeShader.ID, 0, 0);
+        glShaderStorageBlockBinding(computeShader.ID, 1, 1);
+
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16);
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
+
+        computeShader.use();
+
+        glDispatchCompute(numCubes, numCubes, numCubes);
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        glFinish();
+
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+        glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+        std::vector<glm::vec3> tris;
+        int val = 0;
+        while (NUM_ELEMENTS--) {
+            if ((*ptr).x == 0 || (*ptr).x == 255)
+                val++;
+            if ((*ptr).x) {
+                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                ptr++;
+            }
+            else {
+                ptr += 1;
+            }
+        }
+        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+        glDeleteBuffers(2, data_buffer);
+        infiniteTris[ind] = tris;
+        computeShader.deleteProg();
+    }
+    return;
 }
 
 void draw(Shader baseShader) {
+    baseShader.use();
     pos = getPosition();
     //Crashes
     //for (int i = 0;i < xrange * yrange * zrange;i++) {
@@ -712,17 +787,28 @@ void draw(Shader baseShader) {
             glDrawElements(GL_TRIANGLES, indices[i].size(), GL_UNSIGNED_SHORT, (void*)(0));
         }
     }
+
     return;
 }
 int main() {
 
+
     if (initialize() < 0)
         return -1;
 
-    generateTriangles();
+    generateTriangles(0,NULL,NULL,NULL,NULL);
+    for (int i = 0;i < 2;i++)
+    {
+        for (int j = 0;j < 2;j++)
+        {
+            for (int k = 0;k < 2;k++) {
+                generateTriangles(1, i * 2 * 2 + j * 2 + k, i-1, j - 1, k - 1);
+            }
+        }
+    }
 
     Shader baseShader("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
-    baseShader.use();
+    Shader flatShader("vShaderFlat.vertexShader.glsl", "fShaderFlat.fragmentShader.glsl","gShaderFlat.geometryShader.glsl");
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
@@ -740,7 +826,46 @@ int main() {
         glBindFramebuffer(GL_FRAMEBUFFER, mul_fbo);
 
         //Draw calls here
-        draw(baseShader);
+        if (!infinite) {
+            baseShader.use();
+            draw(baseShader);
+        }
+        else {
+            //generateTriangles(1);
+            int flag = 0,level=0;
+            glm::vec3 curPos = getPosition();
+            for (int i = 0;i < 2;i++) {
+                for (int j = 0;j < 2;j++) {
+                    for (int k = 0;k < 2;k++) {
+                        std::cout << glm::length(curPos - infiniteCenters[i * 2 * 2 + j * 2 + k]) << "\n";
+                        if (glm::length(curPos - infiniteCenters[i * 2 * 2 + j * 2 + k]) > sqrt(3)) {
+                            //flag = 0;
+                            generateTriangles(1, i * 2 * 2 + j * 2 + k, i-1, j-1, k-1);
+                        }
+                    }
+                }
+            }
+            std::cout << "\n";
+            flatShader.use();
+            computeMatricesFromInputs(window);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glm::mat4 ProjectionMatrix = getProjectionMatrix();
+            glm::mat4 ViewMatrix = getViewMatrix();
+            flatShader.setMat4("mv_matrix", ViewMatrix);
+            flatShader.setMat4("proj_matrix", ProjectionMatrix);
+            flatShader.setVec3("lightPos", getPosition());
+            flatShader.setVec3("cameraDir", getDirection());
+            glBindVertexArray(infinitevao);
+            glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
+            for (int i = 0;i < 8;i++) {
+                if (infiniteTris[i].size()) {
+                    glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
+                    glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+                }
+            }
+           
+        }
 
         glBindFramebuffer(GL_READ_FRAMEBUFFER, mul_fbo);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
