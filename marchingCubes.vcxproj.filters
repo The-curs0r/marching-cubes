@@ -51,9 +51,6 @@
     <ClCompile Include="vboIndexer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="triangleFace.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Deps\imgui\imconfig.h">
@@ -106,7 +103,6 @@
     <None Include="vShader.vertexShader.glsl">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="cShader.computeShader.glsl" />
     <None Include="marchShader.computeShader.glsl">
       <Filter>Source Files</Filter>
     </None>

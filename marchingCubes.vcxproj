@@ -165,7 +165,6 @@
     <ClCompile Include="Deps\imgui\imgui_tables.cpp" />
     <ClCompile Include="Deps\imgui\imgui_widgets.cpp" />
     <ClCompile Include="Source.cpp" />
-    <ClCompile Include="triangleFace.cpp" />
     <ClCompile Include="vboIndexer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -185,7 +184,6 @@
     <ClInclude Include="vboIndexer.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="cShader.computeShader.glsl" />
     <None Include="fShader.fragmentShader.glsl" />
     <None Include="marchShader.computeShader.glsl" />
     <None Include="vShader.vertexShader.glsl" />

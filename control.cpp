@@ -8,11 +8,11 @@ using namespace glm;
 
 glm::mat4 ViewMatrix;///<Output View Matrix
 glm::mat4 ProjectionMatrix;///<Output Projection Matrix
-glm::vec3 position = glm::vec3(0, 0, 2);///<Initial position on +Z
+glm::vec3 position = glm::vec3(4.30707, 1.27284, 6.55675);///<Initial position on +Z
 float horizontalAngle = 3.14f;///<Initial horizontal angle : toward -Z
 float verticalAngle = 0.0f;///<Initial vertical angle : none
 float initialFoV = 45.0f;///<Initial Field of View
-float speed = 1.0f;///<Speed of viweing
+float speed = 0.5f;///<Speed of viweing
 float mouseSpeed = 0.001f;///<Cursor movement speed
 float FoV = initialFoV;///<Initial Field Of View
 glm::vec3 center;///<Center vector
@@ -26,6 +26,9 @@ glm::mat4 getProjectionMatrix() {
 }
 glm::vec3 getPosition() {
 	return position;
+}
+glm::vec3 getDirection() {
+	return direction;
 }
 void computeMatricesFromInputs(GLFWwindow* window) {
 	static double lastTime = glfwGetTime();

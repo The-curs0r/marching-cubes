@@ -11,7 +11,7 @@ out VS_OUT{
 }vs_out;
 void main(void) {
 	vs_out.vUv = vertex.xy * madd + madd;
-    vs_out.normal = normal;
+    vs_out.normal = normalize(normal);
 	gl_Position = proj_matrix * mv_matrix * vec4(vertex, 1.0f);
     vs_out.worldPos = (proj_matrix * mv_matrix * vec4(vertex, 1.0f)).xyz;
     vs_out.worldPos = vertex;

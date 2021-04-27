@@ -5,6 +5,7 @@
 #include <string>
 
 #include <utility>
+#include <numeric>
 
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
@@ -57,6 +58,7 @@ const int MAX_THREADS = 4;
 
 glm::mat3 mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
 glm::mat3 projMatrix = glm::ortho(-0.5f, 0.5f, -0.5f, 0.5f, -1.0f, 1.0f);
+glm::vec3 pos = glm::vec3(0.0f,0.0f,2.0f);
 
 GLuint vao, vbo, nbo, ebo;
 GLuint vaot, vbot, nbot, ebot;
@@ -78,9 +80,9 @@ GLuint noiseTex;
 float counter = 0;
 
 //Tris
-const int xrange = 2;
+const int xrange = 10;
 const int yrange = 2;
-const int zrange = 2;
+const int zrange = 10;
 
 std::vector<glm::vec3> centers;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
@@ -595,9 +597,12 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_RELEASE)
+    if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_T) == GLFW_RELEASE)
             takeSS();
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_RELEASE)
+            AAFlag= !AAFlag;
     return;
 }
 
@@ -624,7 +629,127 @@ void cleanUp() {
     lines.clear();
     return;
 }
+
+void calcTris() {
+    std::vector<triangleFace> faces;
+    for (int i = 0;i < xrange * yrange * zrange;i++) {
+        indexVBO(finalTris[i], indices[i], indexed_vertices[i]);
+        finalTris[i].clear();
+        for (int j = 0;j < indices[i].size();j += 3) {
+            triangleFace temp = triangleFace(j / 3, indices[i][j], indices[i][j + 1], indices[i][j + 2], indexed_vertices[i]);
+            faces.push_back(temp);
+        }
+        //std::cout << "veca2" << faces.size() << '\n';
+        //std::vector<glm::vec3> indexed_normals;
+        for (int j = 0;j < indexed_vertices[i].size();j++) {
+            indexed_normals[i].push_back(glm::vec3(0.0f));
+        }
+        for (int j = 0;j < faces.size();j++) {
+            indexed_normals[i][faces[j].indices[0]] += faces[j].normal;
+            indexed_normals[i][faces[j].indices[1]] += faces[j].normal;
+            indexed_normals[i][faces[j].indices[2]] += faces[j].normal;
+        }
+        faces.clear();
+    }
+
+    glGenBuffers(1, &vbot);
+    glGenBuffers(1, &nbot);
+    glGenVertexArrays(1, &vaot);
+    glBindVertexArray(vaot);
+    glEnableVertexAttribArray(0);
+    glEnableVertexAttribArray(1);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbot);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, nbot);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+    glGenBuffers(1, &ebot);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
+    
+}
+
+
+void test() {
+    const int numCubes = 32; //Change in compute shader too
+    float length = 1.0f;
+
+        for (int i = 0;i < xrange;i++) {
+            for (int j = 0;j < yrange;j++) {
+                for (int k = 0;k < zrange;k++) {
+                    centers.push_back(glm::vec3(i, j, k));
+                    Shader computeShader("marchShader.computeShader.glsl");
+                    computeShader.use();
+                    computeShader.setFloat("inc", length / numCubes);
+                    computeShader.setInt("numCubes", numCubes);
+                    computeShader.setVec3("stPoint", glm::vec3(i, j, k));
+
+                    GLuint  data_buffer[2];
+                    int NUM_ELEMENTS = numCubes * numCubes * numCubes * 15;
+
+                    glGenBuffers(2, data_buffer);
+
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(glm::vec4), NULL, GL_DYNAMIC_COPY);
+
+                    glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
+
+                    glShaderStorageBlockBinding(computeShader.ID, 0, 0);
+                    glShaderStorageBlockBinding(computeShader.ID, 1, 1);
+
+                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+
+                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16);
+                    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
+
+                    computeShader.use();
+
+                    glDispatchCompute(numCubes, numCubes, numCubes);
+
+                    glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+                    glFinish();
+
+                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+                    glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+                    std::vector<glm::vec3> tris;
+                    int val = 0;
+                    while (NUM_ELEMENTS--) {
+                        if ((*ptr).x == 0 || (*ptr).x == 255)
+                            val++;
+                        if ((*ptr).x) {
+                            tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                            ptr++;
+                        }
+                        else {
+                            ptr += 1;
+                        }
+                    }
+                    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+                    glDeleteBuffers(2, data_buffer);
+                    finalTris[i * zrange * yrange + j * zrange + k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
+                }
+            }
+        }
+        calcTris();
+        return;
+}
+
 void draw(Shader baseShader) {
+    pos = getPosition();
+
+    for (int i = 0;i < xrange * yrange * zrange;i++) {
+        if (glm::length(pos - centers[i]) > 5.0f) {
+            //indexed_normals[i].clear();
+            //indexed_vertices[i].clear();
+            //indices[i].clear();
+            //centers[i] = (pos + getDirection());
+            //test(1, centers[i].x, centers[i].y, centers[i].z,i);
+            ;
+        }
+    }
+
     computeMatricesFromInputs(window);
 
     glBindTexture(GL_TEXTURE_2D, noiseTex);
@@ -635,7 +760,8 @@ void draw(Shader baseShader) {
     baseShader.setMat4("mv_matrix", ViewMatrix);
     baseShader.setMat4("proj_matrix", ProjectionMatrix);
     baseShader.setVec3("lightPos", getPosition());
-    //glBindVertexArray(vao);
+    baseShader.setVec3("cameraDir", getDirection());
+
     for (int i = 0;i < xrange * yrange * zrange;i++) {
         if (indexed_vertices[i].size()) {
             glBindBuffer(GL_ARRAY_BUFFER, vbot);
@@ -652,184 +778,7 @@ void draw(Shader baseShader) {
     return;
 }
 
-void calcTris() {
 
-    std::vector<triangleFace> faces;
-    for (int i = 0;i < xrange * yrange * zrange;i++) {
-        std::cout << "i" << '\n';
-        indexVBO(finalTris[i], indices[i], indexed_vertices[i]);
-        finalTris[i].clear();
-        //std::cout << "veca" << '\n';
-        std::cout << indexed_vertices[i].size() << " " << indices[i].size() << "\n";
-        for (int j = 0;j < indices[i].size();j += 3) {
-            triangleFace temp = triangleFace(j / 3, indices[i][j], indices[i][j + 1], indices[i][j + 2], indexed_vertices[i]);
-            //faceBelongTo[indices[i]].insert(i / 3);
-            //faceBelongTo[indices[i+1]].insert(i / 3);
-            //faceBelongTo[indices[i+2]].insert(i / 3);
-            faces.push_back(temp);
-        }
-        //std::cout << "veca2" << faces.size() << '\n';
-        //std::vector<glm::vec3> indexed_normals;
-        for (int j = 0;j < indexed_vertices[i].size();j++) {
-            indexed_normals[i].push_back(glm::vec3(0.0f));
-        }
-        for (int j = 0;j < faces.size();j++) {
-            indexed_normals[i][faces[j].indices[0]] += faces[j].normal;
-            indexed_normals[i][faces[j].indices[1]] += faces[j].normal;
-            indexed_normals[i][faces[j].indices[2]] += faces[j].normal;
-        }
-        for (int j = 0;j < indexed_vertices[i].size();j++) {
-            indexed_normals[i][j] = glm::normalize(indexed_normals[i][j]);
-        }
-        faces.clear();
-        //std::cout << finalTris[i].size() << " aa " << finalTris[i].size() * sizeof(glm::vec3) << "\n";
-        //std::cout << "Aaa" << "\n";
-    }
-
-    
-
-    //for (auto i : indices)
-    //    std::cout << i <<"  "<<indexed_vertices[i].x << "  " << indexed_vertices[i].y<< "  " << indexed_vertices[i].z << "\n";
-
-    glGenBuffers(1, &vbot);
-    //glBindBuffer(GL_ARRAY_BUFFER, vbot);
-    //glBufferData(GL_ARRAY_BUFFER, indexed_vertices.size() * sizeof(glm::vec3), &indexed_vertices[0], GL_STATIC_DRAW);
-
-    glGenBuffers(1, &nbot);
-    //glBindBuffer(GL_ARRAY_BUFFER, nbot);
-    //glBufferData(GL_ARRAY_BUFFER, indexed_normals.size() * sizeof(glm::vec3), &indexed_normals[0], GL_STATIC_DRAW);
-
-    glGenVertexArrays(1, &vaot);
-    glBindVertexArray(vaot);
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbot);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, nbot);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glGenBuffers(1, &ebot);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned short), &indices[0], GL_STATIC_DRAW);
-    
-    //delete[] faceBelongTo;
-}
-
-
-void test() {
-    //std::vector<float> noise = {-1.0,.5f,-0.6f,-0.8f,-0.3f,-0.7f,1.4f,-0.6f};
-    //std::vector<glm::vec3> vertexCoord;
-    //vertexCoord.push_back(glm::vec3(-1.0f, -1.0f, -1.0f));
-    //vertexCoord.push_back(glm::vec3(-1.0f, 1.0f, -1.0f));
-    //vertexCoord.push_back(glm::vec3(1.0f, 1.0f, -1.0f));
-    //vertexCoord.push_back(glm::vec3(1.0f,-1.0f,-1.0f));
-    //vertexCoord.push_back(glm::vec3(-1.0f, -1.0f, 1.0f));
-    //vertexCoord.push_back(glm::vec3(-1.0f, 1.0f, 1.0f));
-    //vertexCoord.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
-    //vertexCoord.push_back(glm::vec3(1.0f, -1.0f, 1.0f));
-
- 
-    const int numCubes = 32; //Change in compute shader too
-    float length = 1.0f;
-
-    for (int i = 0;i < xrange;i++) {
-        for (int j = 0;j < yrange;j++) {
-            for (int k = 0;k < zrange;k++) {
-                centers.push_back(glm::vec3(i, j, k));
-                Shader computeShader("marchShader.computeShader.glsl");
-                computeShader.use();
-                computeShader.setFloat("inc", length / numCubes);
-                computeShader.setInt("numCubes", numCubes);
-                computeShader.setVec3("stPoint", glm::vec3(i, j, k));
-                
-                GLuint  data_buffer[2];
-                int NUM_ELEMENTS = numCubes * numCubes * numCubes * 15;
-
-                glGenBuffers(2, data_buffer);
-
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(glm::vec4), NULL, GL_DYNAMIC_COPY);
-
-                glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
-                glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
-
-                glShaderStorageBlockBinding(computeShader.ID, 0, 0);
-                glShaderStorageBlockBinding(computeShader.ID, 1, 1);
-
-                glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
-                
-                glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16 );
-                glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16 , triTablea);
-                
-                computeShader.use();
-
-                glDispatchCompute(numCubes, numCubes, numCubes);
-
-                glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-                glFinish();
-
-                glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
-                glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
-                std::vector<glm::vec3> tris;
-                int val=0;
-                while (NUM_ELEMENTS--) {
-                    //std::cout << (*ptr).x << " " << (*ptr).y << " " << (*ptr).z << " " << (*ptr).w << " ";
-                    //NUM_ELEMENTS -= 3;
-                    if ((*ptr).x == 0 || (*ptr).x == 255)
-                        val++;
-                    if ((*ptr).x) {
-                        //std::cout << (*ptr).y<<" "<< (*ptr).z << " " << (*ptr).w << " ";
-                        tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
-                        ptr++;
-                        //tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
-                        //ptr++;
-                        //tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
-                        //ptr++;
-                    }
-                    else {
-                        ptr += 1;
-                    }
-                    //ptr++;
-                    //std::cout<<val << "\n";
-                }
-                //std::cout << tris.size()%3 << "aaaaaaaaaa"<<val<<"\n";
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-                glDeleteBuffers(2, data_buffer);
-                finalTris[i*zrange*yrange+j*zrange+k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
-            }
-        }
-    }
-    calcTris();
-    return;
-}
-
-void compute() {
-
-    //const GLubyte* vendor = glGetString(GL_VENDOR); // Returns the vendor
-    //const GLubyte* renderer = glGetString(GL_RENDERER); // Returns a hint to the model
-
-    //std::cout << vendor << "\n";
-    //std::cout << renderer << "\n";
-
-
-    //int NumberOfExtensions;
-    //glGetIntegerv(GL_NUM_EXTENSIONS, &NumberOfExtensions);
-    //std::cout << NumberOfExtensions << "\n";
-    //for (int i = 0; i < NumberOfExtensions; i++) {
-    //    const GLubyte* ccc = glGetStringi(GL_EXTENSIONS, i);
-    //    std::cout << ccc << "\n";
-    //    if (strcmp((const char*)ccc, (const char*)"GL_EXT_shader_16bit_storage") == 0) {
-    //        // The extension is supported by our hardware and driver
-    //        // Try to get the "glDebugMessageCallbackARB" function :
-    //        std::cout << "yeye\n";
-    //    }
-    //}
-    
-
-    return;
-}
 
 int main() {
 
@@ -839,11 +788,6 @@ int main() {
     test();
 
     Shader baseShader("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
-    baseShader.use();
-
-    compute();
-    
-
     baseShader.use();
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -902,9 +846,6 @@ int main() {
             ImGui::SameLine();
             ImGui::Dummy(ImVec2(10.0f, 0.0f));
             ImGui::SameLine();
-            /*if (ImGui::Button("Take Screenshot")) {
-                takeImage = 1;
-            }*/
         }
         ImGui::End();
         ImGui::Render();

@@ -7,11 +7,8 @@
 class triangleFace {
 public:
 	int ID;
-	std::vector<int> adjFaces;
 	int indices[3];
 	glm::vec3 normal = glm::vec3(0.0f);
-
-
 
 	//Constructors
 	triangleFace(int id,int v1,int v2, int v3,std::vector<glm::vec3> vertices) {
