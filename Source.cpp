@@ -3,10 +3,8 @@
 #include <set>
 #include <algorithm>
 #include <string>
-
 #include <utility>
 #include <numeric>
-
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -37,15 +35,10 @@ using namespace gl;
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <Windows.h>
-
 #include "shader.hpp"
 #include "control.hpp"
 #include "vboIndexer.hpp"
 #include "triangleFace.hpp"
-
-
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 
 //extern "C" {
 //    _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -54,36 +47,17 @@ using namespace gl;
 GLFWwindow* window;
 const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
-const int MAX_THREADS = 4;
-
-glm::mat3 mvMatrix = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-glm::mat3 projMatrix = glm::ortho(-0.5f, 0.5f, -0.5f, 0.5f, -1.0f, 1.0f);
 glm::vec3 pos = glm::vec3(0.0f,0.0f,2.0f);
-
-GLuint vao, vbo, nbo, ebo;
 GLuint vaot, vbot, nbot, ebot;
 GLuint fbo, resTex, resDep;
 GLuint mul_fbo, mul_resTex, mul_resDep;
 ImVec2 vMin, vMax;
 double xpos, ypos; //For mouse input
-
-std::vector<glm::vec3> points;
-std::vector<glm::vec3> lines;
-
 int takeImage = 0;
 bool AAFlag = false, prevAAFlag = false;
-std::string displayFormat = "%.3f";
-
-GLuint noiseTex;
-
-//Debug
-float counter = 0;
-
-//Tris
 const int xrange = 10;
 const int yrange = 2;
 const int zrange = 10;
-
 std::vector<glm::vec3> centers;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
@@ -401,7 +375,6 @@ void CheckFBOStatus(GLuint fbo, GLenum target) {
     return;
 }
 int initialize() {
-
     glfwSetErrorCallback(glfw_error_callback);
     glfwInit();
     const char* glsl_version = "#version 450";
@@ -456,13 +429,6 @@ int initialize() {
         fprintf(stderr, "Failed to initialize OpenGL loader!\n");
         return 1;
     }
-    glGenVertexArrays(1, &vao);
-    glBindVertexArray(vao);
-
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
     //Rendering into FBO
     glCreateFramebuffers(1, &fbo);
@@ -484,6 +450,7 @@ int initialize() {
     static const GLenum drawBuffers[] = { GL_COLOR_ATTACHMENT0 };
     glDrawBuffers(1, drawBuffers);
     CheckFBOStatus(fbo, GL_DRAW_FRAMEBUFFER);
+
     //For multisample FBO
     glGenFramebuffers(1, &mul_fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, mul_fbo);
@@ -500,6 +467,7 @@ int initialize() {
     glDrawBuffers(1, drawBuffers);
     CheckFBOStatus(mul_fbo, GL_DRAW_FRAMEBUFFER);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
     // Setup Dear ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -507,33 +475,6 @@ int initialize() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
-
-    //Load noise texture
-    int w, h, comp;
-    std::string filename = "./Textures/noise.png";
-    stbi_set_flip_vertically_on_load(1);
-    unsigned char* image = stbi_load(filename.c_str(), &w, &h, &comp, STBI_rgb);
-    stbi_set_flip_vertically_on_load(0);
-    if (image == nullptr) {
-        throw(std::string("Failed to load snow texture"));
-    }
-    glEnable(GL_TEXTURE_2D);
-    glGenTextures(1, &noiseTex);
-    glBindTexture(GL_TEXTURE_2D, noiseTex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    if (comp == 3) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB, GL_UNSIGNED_BYTE, image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else if (comp == 4) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    stbi_image_free(image);
-
     return 1;
 }
 void takeSS() {
@@ -573,7 +514,7 @@ void takeSS() {
 
     //Converting to PNG
     WinExec("cd ..", 1);
-    WinExec("magick \"./ScreenShot.tga\" -flip \"./Output.png\"", 1);
+    WinExec("magick \"./ScreenShot.tga\" -flip \"./Screenshot.png\"", 1);
 
     return;
 }
@@ -605,7 +546,6 @@ void processInput(GLFWwindow* window)
             AAFlag= !AAFlag;
     return;
 }
-
 void cleanUp() {
 
     ImGui_ImplOpenGL3_Shutdown();
@@ -617,16 +557,21 @@ void cleanUp() {
 
     glDeleteFramebuffers(1, &fbo);
     glDeleteFramebuffers(1, &mul_fbo);
-
-    glDeleteVertexArrays(1, &vao);
-    glDeleteBuffers(1, &vbo);
+    glDeleteVertexArrays(1, &vaot);
+    glDeleteBuffers(1, &vbot);
+    glDeleteBuffers(1, &nbot);
+    glDeleteBuffers(1, &ebot);
 
     glDeleteTextures(1, &mul_resTex);
     glDeleteTextures(1, &mul_resDep);
     glDeleteTextures(1, &resDep);
     glDeleteTextures(1, &resTex);
-    points.clear();
-    lines.clear();
+
+    indexed_normals->clear();
+    indexed_vertices->clear();
+    indices->clear();
+    finalTris->clear();
+
     return;
 }
 
@@ -639,8 +584,6 @@ void calcTris() {
             triangleFace temp = triangleFace(j / 3, indices[i][j], indices[i][j + 1], indices[i][j + 2], indexed_vertices[i]);
             faces.push_back(temp);
         }
-        //std::cout << "veca2" << faces.size() << '\n';
-        //std::vector<glm::vec3> indexed_normals;
         for (int j = 0;j < indexed_vertices[i].size();j++) {
             indexed_normals[i].push_back(glm::vec3(0.0f));
         }
@@ -651,7 +594,6 @@ void calcTris() {
         }
         faces.clear();
     }
-
     glGenBuffers(1, &vbot);
     glGenBuffers(1, &nbot);
     glGenVertexArrays(1, &vaot);
@@ -667,14 +609,12 @@ void calcTris() {
 
     glGenBuffers(1, &ebot);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
-    
 }
 
 
-void test() {
+void generateTriangles() {
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
-
         for (int i = 0;i < xrange;i++) {
             for (int j = 0;j < yrange;j++) {
                 for (int k = 0;k < zrange;k++) {
@@ -729,6 +669,7 @@ void test() {
                     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
                     glDeleteBuffers(2, data_buffer);
                     finalTris[i * zrange * yrange + j * zrange + k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
+                    computeShader.deleteProg();
                 }
             }
         }
@@ -738,21 +679,17 @@ void test() {
 
 void draw(Shader baseShader) {
     pos = getPosition();
-
-    for (int i = 0;i < xrange * yrange * zrange;i++) {
-        if (glm::length(pos - centers[i]) > 5.0f) {
+    //for (int i = 0;i < xrange * yrange * zrange;i++) {
+    //    if (glm::length(pos - centers[i]) > 5.0f) {
             //indexed_normals[i].clear();
             //indexed_vertices[i].clear();
             //indices[i].clear();
             //centers[i] = (pos + getDirection());
             //test(1, centers[i].x, centers[i].y, centers[i].z,i);
-            ;
-        }
-    }
-
+    //       ;
+    //   }
+    //}
     computeMatricesFromInputs(window);
-
-    glBindTexture(GL_TEXTURE_2D, noiseTex);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 ProjectionMatrix = getProjectionMatrix();
@@ -761,7 +698,6 @@ void draw(Shader baseShader) {
     baseShader.setMat4("proj_matrix", ProjectionMatrix);
     baseShader.setVec3("lightPos", getPosition());
     baseShader.setVec3("cameraDir", getDirection());
-
     for (int i = 0;i < xrange * yrange * zrange;i++) {
         if (indexed_vertices[i].size()) {
             glBindBuffer(GL_ARRAY_BUFFER, vbot);
@@ -777,15 +713,12 @@ void draw(Shader baseShader) {
     }
     return;
 }
-
-
-
 int main() {
 
     if (initialize() < 0)
         return -1;
 
-    test();
+    generateTriangles();
 
     Shader baseShader("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
     baseShader.use();
@@ -794,7 +727,6 @@ int main() {
 
     while (!glfwWindowShouldClose(window))
     {
-        counter += 0.1;
 
         processInput(window);
         cursor_position_callback(window, xpos, ypos);
@@ -817,7 +749,7 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
 
-        ImGui::SetNextWindowSize(ImVec2(1350.0f, 950.0f), 0);
+        ImGui::SetNextWindowSize(ImVec2(1920.0f, 1080.0f), 0);
         ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f), 0);
         ImGui::Begin("OpenGL Result");
         {
@@ -831,21 +763,6 @@ int main() {
             vMax.y += ImGui::GetWindowPos().y;
             ImGui::Image((ImTextureID)resTex, wsize, ImVec2(0, 1), ImVec2(1, 0));
             ImGui::EndChild();
-        }
-        ImGui::End();
-
-        ImGui::Begin("Controls");
-        {
-            ImGui::Dummy(ImVec2(0.0f, 20.0f));
-            if (ImGui::Button("Clear Points")) {
-                ;
-            }
-            ImGui::Dummy(ImVec2(0.0f, 20.0f));
-            ImGui::Text("Utility");
-            ImGui::Checkbox("Anti-aliasing", &AAFlag);
-            ImGui::SameLine();
-            ImGui::Dummy(ImVec2(10.0f, 0.0f));
-            ImGui::SameLine();
         }
         ImGui::End();
         ImGui::Render();

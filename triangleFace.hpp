@@ -11,14 +11,13 @@ public:
 	glm::vec3 normal = glm::vec3(0.0f);
 
 	//Constructors
-	triangleFace(int id,int v1,int v2, int v3,std::vector<glm::vec3> vertices) {
+	triangleFace(int id, int v1, int v2, int v3, std::vector<glm::vec3> vertices) {
 		ID = id;
 		indices[0] = v1;
 		indices[1] = v2;
 		indices[2] = v3;
 		normal = glm::cross(vertices[v2] - vertices[v1], vertices[v3] - vertices[v1]);
 	}
-	
 };
 
 #endif

@@ -1,6 +1,5 @@
 #version 450 core
 out vec4 color;
-uniform sampler2D noise;
 uniform vec3 lightPos = vec3(0.0f,0.0f,0.0f);
 uniform vec3 cameraDir = vec3(0.0f, 0.0f, 0.0f);
 in VS_OUT{
@@ -9,6 +8,7 @@ in VS_OUT{
 	vec3 worldPos;
 }fs_in;
 
+//Fog effect from https://www.iquilezles.org/www/articles/fog/fog.htm
 vec3 applyFog(in vec3  rgb,      // original color of the pixel
 	in float distance, // camera to point distance
 	in vec3  rayOri,   // camera position
@@ -31,9 +31,6 @@ void main(void) {
 	//color = texture(noise, vUv);
 	highp vec3 L = lightPos - fs_in.worldPos;
 	highp float NL = max(dot(fs_in.normal, normalize(L)), 0.0);
-	highp vec3 colort = mix(vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f), fs_in.worldPos.y);
-	//highp vec3 colort = vec3(abs(1 * fs_in.normal[0]), abs(1 * fs_in.normal[1]), abs(1 * fs_in.normal[2])) / max(1.0, pow(length(L), 2));
-	colort = colort/max(1.0,pow(length(L),1));
-	color = vec4(applyFog(colort * NL * 0.8,length(L), lightPos,cameraDir), 1.0);
-
+	highp vec3 colort = mix(vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f), fs_in.worldPos.y) / max(1.0, pow(length(L), 1));
+	color = vec4(applyFog(colort * NL * 0.8, length(L), lightPos, cameraDir), 1.0);
 }
