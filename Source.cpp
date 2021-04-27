@@ -55,9 +55,9 @@ ImVec2 vMin, vMax;
 double xpos, ypos; //For mouse input
 int takeImage = 0;
 bool AAFlag = false, prevAAFlag = false;
-const int xrange = 10;
+const int xrange = 1;
 const int yrange = 2;
-const int zrange = 10;
+const int zrange = 1;
 std::vector<glm::vec3> centers;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
@@ -679,6 +679,7 @@ void generateTriangles() {
 
 void draw(Shader baseShader) {
     pos = getPosition();
+    //Crashes
     //for (int i = 0;i < xrange * yrange * zrange;i++) {
     //    if (glm::length(pos - centers[i]) > 5.0f) {
             //indexed_normals[i].clear();

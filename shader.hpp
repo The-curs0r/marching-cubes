@@ -14,25 +14,6 @@ public:
     unsigned int ID;///<ShaderID of generated program
     // constructor generates the shader on the fly
     // ------------------------------------------------------------------------
-/**
-*   Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
-*
-*   Summary of Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr) constructor:
-*
-*       Creates a new shader and assigns a shader ID
-*
-*   Parameters  :
-*
-*		const char* vertexPath -  Vertex Shader source code
-*       const char* fragmentPath - Fragment Shader source code
-*       const char* geometryPath - Geometry Shader source code
-*
-*
-*   Description :
-*
-*       Creates a new shader and assigns a shader ID by reading the
-*       source code files as specified
-*/
     Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr)
     {
         std::string vertexCode;///<Vertex Shader code

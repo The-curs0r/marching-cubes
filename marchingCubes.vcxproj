@@ -179,7 +179,6 @@
     <ClInclude Include="Deps\imgui\imstb_textedit.h" />
     <ClInclude Include="Deps\imgui\imstb_truetype.h" />
     <ClInclude Include="shader.hpp" />
-    <ClInclude Include="stb_image.h" />
     <ClInclude Include="triangleFace.hpp" />
     <ClInclude Include="vboIndexer.hpp" />
   </ItemGroup>
