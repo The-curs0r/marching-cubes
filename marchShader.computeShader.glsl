@@ -1,11 +1,8 @@
 #version 450 core
-
 layout(local_size_x = 1) in;
-
 uniform vec3 stPoint;
 uniform float inc;
 const int numCubes = 32;
-
 layout(binding = 0) writeonly buffer block1
 {
     vec4 output_tri_data[numCubes * numCubes * numCubes * 15];
@@ -85,7 +82,6 @@ float snoise(vec3 v) {
     return 42.0 * dot(m * m, vec4(dot(p0, x0), dot(p1, x1),
         dot(p2, x2), dot(p3, x3)));
 }
-
 int edgeTriangle[256] = { 0, 1 , 1 , 2 , 1 , 2 , 2 , 3 , 1 , 2 , 2 , 3 , 2 , 3 , 3 , 2 , 1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 3 ,
 1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 3 , 2 , 3 , 3 , 2 , 3 , 4 , 4 , 3 , 3 , 4 , 4 , 3 , 4 , 5 , 5 , 2 ,
 1 , 2 , 2 , 3 , 2 , 3 , 3 , 4 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 3 , 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 4 ,
@@ -94,9 +90,6 @@ int edgeTriangle[256] = { 0, 1 , 1 , 2 , 1 , 2 , 2 , 3 , 1 , 2 , 2 , 3 , 2 , 3 ,
 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 4 , 3 , 4 , 4 , 3 , 4 , 5 , 5 , 4 , 4 , 3 , 5 , 2 , 5 , 4 , 2 , 1 ,
 2 , 3 , 3 , 4 , 3 , 4 , 4 , 5 , 3 , 4 , 4 , 5 , 2 , 3 , 3 , 2 , 3 , 4 , 4 , 5 , 4 , 5 , 5 , 2 , 4 , 3 , 5 , 4 , 3 , 2 , 4 , 1 ,
 3 , 4 , 4 , 5 , 4 , 5 , 3 , 4 , 4 , 5 , 5 , 2 , 3 , 4 , 2 , 1 , 2 , 3 , 3 , 2 , 3 , 4 , 2 , 1 , 3 , 2 , 4 , 1 , 2 , 1 , 1 ,  0 };
-
-
-
 void main(void)
 {
     vec3 coord = stPoint + vec3(gl_WorkGroupID.x * inc, gl_WorkGroupID.y * inc, gl_WorkGroupID.z * inc);
@@ -111,34 +104,8 @@ void main(void)
                             vec3(coord.x + dim, coord.y + dim, coord.z + dim) ,
                             vec3(coord.x + dim, coord.y, coord.z + dim) };
     for (int i = 0;i < 8;i++) {
-        switch (i) {
-        case 0:
-            vertexNoise[i] = snoise(vec3(coord.x, coord.y, coord.z));
-            break;
-        case 1:
-            vertexNoise[i] = snoise(vec3(coord.x, coord.y + dim, coord.z));
-            break;
-        case 2:
-            vertexNoise[i] = snoise(vec3(coord.x + dim, coord.y + dim, coord.z));
-            break;
-        case 3:
-            vertexNoise[i] = snoise(vec3(coord.x + dim, coord.y, coord.z));
-            break;
-        case 4:
-            vertexNoise[i] = snoise(vec3(coord.x, coord.y, coord.z + dim));
-            break;
-        case 5:
-            vertexNoise[i] = snoise(vec3(coord.x, coord.y + dim, coord.z + dim));
-            break;
-        case 6:
-            vertexNoise[i] = snoise(vec3(coord.x + dim, coord.y + dim, coord.z + dim));
-            break;
-        case 7:
-            vertexNoise[i] = snoise(vec3(coord.x + dim, coord.y, coord.z + dim));
-            break;
-        }
+        vertexNoise[i] = snoise(vertexCoord[i]);
     }
-
     int indexa = 0;
     for (int i = 0;i < 8;i++) {
         if (vertexNoise[i] > 0.0f) indexa += 1 << i;
@@ -169,6 +136,5 @@ void main(void)
         output_tri_data[i + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(1.0f, edgeCoords[triTable[indexa][i]]);
         output_tri_data[i + 1 + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(1.0f, edgeCoords[triTable[indexa][i+1]]);
         output_tri_data[i + 2 + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(1.0f, edgeCoords[triTable[indexa][i + 2]]);
-
     }
 }

@@ -154,9 +154,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="chunk.cpp" />
     <ClCompile Include="control.cpp" />
-    <ClCompile Include="cube.cpp" />
     <ClCompile Include="Deps\glad\src\glad.c" />
     <ClCompile Include="Deps\imgui\backends\imgui_impl_glfw.cpp" />
     <ClCompile Include="Deps\imgui\backends\imgui_impl_opengl3.cpp" />
@@ -166,15 +164,12 @@
     <ClCompile Include="Deps\imgui\imgui_draw.cpp" />
     <ClCompile Include="Deps\imgui\imgui_tables.cpp" />
     <ClCompile Include="Deps\imgui\imgui_widgets.cpp" />
-    <ClCompile Include="SimplexNoise.cpp" />
     <ClCompile Include="Source.cpp" />
     <ClCompile Include="triangleFace.cpp" />
     <ClCompile Include="vboIndexer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="chunk.hpp" />
     <ClInclude Include="control.hpp" />
-    <ClInclude Include="cube.hpp" />
     <ClInclude Include="Deps\imgui\backends\imgui_impl_glfw.h" />
     <ClInclude Include="Deps\imgui\backends\imgui_impl_opengl3.h" />
     <ClInclude Include="Deps\imgui\backends\imgui_impl_win32.h" />
@@ -185,7 +180,6 @@
     <ClInclude Include="Deps\imgui\imstb_textedit.h" />
     <ClInclude Include="Deps\imgui\imstb_truetype.h" />
     <ClInclude Include="shader.hpp" />
-    <ClInclude Include="SimplexNoise.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="triangleFace.hpp" />
     <ClInclude Include="vboIndexer.hpp" />

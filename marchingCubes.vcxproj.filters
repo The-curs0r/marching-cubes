@@ -45,15 +45,6 @@
     <ClCompile Include="Deps\imgui\backends\imgui_impl_win32.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="chunk.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="cube.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="SimplexNoise.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="control.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -96,15 +87,6 @@
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="chunk.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="cube.hpp">
-      <Filter>Source Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimplexNoise.h">
       <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="control.hpp">

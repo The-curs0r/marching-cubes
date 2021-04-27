@@ -38,8 +38,6 @@ using namespace gl;
 #include <Windows.h>
 
 #include "shader.hpp"
-//#include "cube.hpp"
-#include "chunk.hpp"
 #include "control.hpp"
 #include "vboIndexer.hpp"
 #include "triangleFace.hpp"
@@ -79,14 +77,12 @@ GLuint noiseTex;
 //Debug
 float counter = 0;
 
-//Cubes
-//std::vector<cube> cubes;
-std::vector<chunk> chunks;
-
 //Tris
-const int xrange = 5;
-const int yrange = 5;
-const int zrange = 5;
+const int xrange = 2;
+const int yrange = 2;
+const int zrange = 2;
+
+std::vector<glm::vec3> centers;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
@@ -634,26 +630,12 @@ void draw(Shader baseShader) {
     glBindTexture(GL_TEXTURE_2D, noiseTex);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
     glm::mat4 ProjectionMatrix = getProjectionMatrix();
     glm::mat4 ViewMatrix = getViewMatrix();
     baseShader.setMat4("mv_matrix", ViewMatrix);
     baseShader.setMat4("proj_matrix", ProjectionMatrix);
-
     baseShader.setVec3("lightPos", getPosition());
-    
     //glBindVertexArray(vao);
-    //glBindBuffer(GL_ARRAY_BUFFER, vbo);
-    //if (finalTris.size()) {
-    //    glBufferData(GL_ARRAY_BUFFER, finalTris.size() * sizeof(glm::vec3), &finalTris[0], GL_STATIC_DRAW);
-    //    glDrawArrays(GL_TRIANGLES, 0, finalTris.size());
-    //}
-    
-    //glBindBuffer(GL_ARRAY_BUFFER, vbot);
-    //glBufferData(GL_ARRAY_BUFFER, indexed_vertices.size() * sizeof(glm::vec3), &indexed_vertices[0], GL_STATIC_DRAW);
-
-    //glBindBuffer(GL_ARRAY_BUFFER, nbot);
-    //glBufferData(GL_ARRAY_BUFFER, indexed_normals.size() * sizeof(glm::vec3), &indexed_normals[0], GL_STATIC_DRAW);
     for (int i = 0;i < xrange * yrange * zrange;i++) {
         if (indexed_vertices[i].size()) {
             glBindBuffer(GL_ARRAY_BUFFER, vbot);
@@ -667,33 +649,18 @@ void draw(Shader baseShader) {
             glDrawElements(GL_TRIANGLES, indices[i].size(), GL_UNSIGNED_SHORT, (void*)(0));
         }
     }
-   
-
-
     return;
 }
 
 void calcTris() {
-    //if (chunks.size()) {
-    //    int cnt = 0;
-    //    for (auto i : chunks) {
-    //        for (auto cube : i.cubes) {
-    //            cnt++;
-    //            std::vector<glm::vec3> tris = cube.triangles;
-    //            //std::cout << tris.size() << "\n";
-    //            if (tris.size()) {
-    //                finalTris.insert(finalTris.end(), tris.begin(), tris.end());
-    //            }
-    //        }
-    //    }
-    //    std::cout << cnt << "\n";
-    //}
+
+    std::vector<triangleFace> faces;
     for (int i = 0;i < xrange * yrange * zrange;i++) {
         std::cout << "i" << '\n';
         indexVBO(finalTris[i], indices[i], indexed_vertices[i]);
+        finalTris[i].clear();
         //std::cout << "veca" << '\n';
         std::cout << indexed_vertices[i].size() << " " << indices[i].size() << "\n";
-        std::vector<triangleFace> faces;
         for (int j = 0;j < indices[i].size();j += 3) {
             triangleFace temp = triangleFace(j / 3, indices[i][j], indices[i][j + 1], indices[i][j + 2], indexed_vertices[i]);
             //faceBelongTo[indices[i]].insert(i / 3);
@@ -714,6 +681,7 @@ void calcTris() {
         for (int j = 0;j < indexed_vertices[i].size();j++) {
             indexed_normals[i][j] = glm::normalize(indexed_normals[i][j]);
         }
+        faces.clear();
         //std::cout << finalTris[i].size() << " aa " << finalTris[i].size() * sizeof(glm::vec3) << "\n";
         //std::cout << "Aaa" << "\n";
     }
@@ -761,9 +729,7 @@ void test() {
     //vertexCoord.push_back(glm::vec3(-1.0f, 1.0f, 1.0f));
     //vertexCoord.push_back(glm::vec3(1.0f, 1.0f, 1.0f));
     //vertexCoord.push_back(glm::vec3(1.0f, -1.0f, 1.0f));
-    //cube newCube = cube(vertexCoord, noise);
-    //newCube.generateTriangles();
-    //cubes.push_back(newCube);
+
  
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
@@ -771,6 +737,7 @@ void test() {
     for (int i = 0;i < xrange;i++) {
         for (int j = 0;j < yrange;j++) {
             for (int k = 0;k < zrange;k++) {
+                centers.push_back(glm::vec3(i, j, k));
                 Shader computeShader("marchShader.computeShader.glsl");
                 computeShader.use();
                 computeShader.setFloat("inc", length / numCubes);
@@ -827,9 +794,10 @@ void test() {
                     //ptr++;
                     //std::cout<<val << "\n";
                 }
-                std::cout << tris.size()%3 << "aaaaaaaaaa"<<val<<"\n";
+                //std::cout << tris.size()%3 << "aaaaaaaaaa"<<val<<"\n";
                 glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-                finalTris[i*xrange*yrange+j*yrange+k].insert(finalTris[i * xrange * yrange + j * yrange + k].end(), tris.begin(), tris.end());
+                glDeleteBuffers(2, data_buffer);
+                finalTris[i*zrange*yrange+j*zrange+k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
             }
         }
     }

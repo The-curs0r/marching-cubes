@@ -20,7 +20,9 @@ void main(void) {
 	//color = texture(noise, vUv);
 	highp vec3 L = lightPos - fs_in.worldPos;
 	highp float NL = max(dot(fs_in.normal, normalize(L)), 0.0);
-	highp vec3 colort = vec3(1, 1, 1.0)/max(1.0,pow(length(L),2));
+	highp vec3 colort = mix(vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f), fs_in.worldPos.y);
+	//highp vec3 colort = vec3(abs(1 * fs_in.normal[0]), abs(1 * fs_in.normal[1]), abs(1 * fs_in.normal[2])) / max(1.0, pow(length(L), 2));
+	//highp vec3 colort = vec3(1.0f)/max(1.0,pow(length(L),2));
 	color = vec4(colort * NL * 0.8, 1.0);
 
 }
