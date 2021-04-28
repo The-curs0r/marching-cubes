@@ -671,7 +671,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
 
                     computeShader.use();
 
-                    glDispatchCompute(numCubes, numCubes, numCubes);
+                    glDispatchCompute(numCubes/8, numCubes/8, numCubes/8);
 
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
                     glFinish();
@@ -679,10 +679,10 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                     glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
                     glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
                     std::vector<glm::vec3> tris;
-                    int val = 0;
+                    //int val = 0;
                     while (NUM_ELEMENTS--) {
-                        if ((*ptr).x == 0 || (*ptr).x == 255)
-                            val++;
+                        //if ((*ptr).x != 0 || (*ptr).x == 255)
+                        //    val++;
                         if ((*ptr).x) {
                             tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
                             ptr++;
@@ -701,7 +701,6 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         calcTris();
     }
     else {
-        //std::cout << ind <<" "<< xOff <<" " << yOff <<" " << zOff << " ";
         Shader computeShader("marchShader.computeShader.glsl");
         computeShader.use();
         computeShader.setFloat("inc", length / numCubes);
@@ -711,7 +710,6 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         pos.y += (yOff);
         pos.z += (zOff);
         infiniteCenters[ind] = pos;
-        std::cout << ind << " " << pos.x << " " << pos.y << " " << pos.z << "\n";
         computeShader.setVec3("stPoint", pos);
 
         GLuint  data_buffer[2];
@@ -734,8 +732,9 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
 
         computeShader.use();
-
-        glDispatchCompute(numCubes, numCubes, numCubes);
+        int val = 0;
+        //glad_glGetIntegerv("GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS", &val);
+        glDispatchCompute(numCubes/8, numCubes/8, numCubes/8);
 
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         glFinish();
@@ -776,17 +775,6 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
 void draw(Shader baseShader) {
     baseShader.use();
     pos = getPosition();
-    //Crashes
-    //for (int i = 0;i < xrange * yrange * zrange;i++) {
-    //    if (glm::length(pos - centers[i]) > 5.0f) {
-            //indexed_normals[i].clear();
-            //indexed_vertices[i].clear();
-            //indices[i].clear();
-            //centers[i] = (pos + getDirection());
-            //test(1, centers[i].x, centers[i].y, centers[i].z,i);
-    //       ;
-    //   }
-    //}
     computeMatricesFromInputs(window);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -817,7 +805,6 @@ void draw(Shader baseShader) {
 void updateChunks() {
     glm::vec3 curPos = getPosition();
     float switchDis = 1.0f;
-    //std::cout << curPos.x << "\n";
     if ((curPos.x - prevPos.x) > switchDis) {
         prevPos.x += 1.0f;
         for (int i = 0;i < 2;i++)
@@ -966,6 +953,7 @@ int main() {
     pos = getPosition();
     prevPos = getPosition();
     generateTriangles(0,NULL,NULL,NULL,NULL,glm::vec3(NULL));
+
     for (int i = 0;i < 3;i++)
     {
         for (int j = 0;j < 3;j++)
@@ -1021,9 +1009,6 @@ int main() {
                     glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
                     glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
                     glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
-                }
-                else {
-                    std::cout << "Empty " << i << "\n";
                 }
             }
            

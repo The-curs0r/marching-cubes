@@ -1,5 +1,5 @@
 #version 450 core
-layout(local_size_x = 1) in;
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 uniform vec3 stPoint;
 uniform float inc;
 const int numCubes = 32;
@@ -92,7 +92,7 @@ int edgeTriangle[256] = { 0, 1 , 1 , 2 , 1 , 2 , 2 , 3 , 1 , 2 , 2 , 3 , 2 , 3 ,
 3 , 4 , 4 , 5 , 4 , 5 , 3 , 4 , 4 , 5 , 5 , 2 , 3 , 4 , 2 , 1 , 2 , 3 , 3 , 2 , 3 , 4 , 2 , 1 , 3 , 2 , 4 , 1 , 2 , 1 , 1 ,  0 };
 void main(void)
 {
-    vec3 coord = stPoint + vec3(gl_WorkGroupID.x * inc, gl_WorkGroupID.y * inc, gl_WorkGroupID.z * inc);
+    vec3 coord = stPoint + vec3((gl_WorkGroupID.x * 8 + gl_LocalInvocationID.x) * inc, (gl_WorkGroupID.y * 8 + gl_LocalInvocationID.y) * inc, (gl_WorkGroupID.z * 8 + gl_LocalInvocationID.z) * inc);
     float vertexNoise[8];
     float dim = inc;
     vec3 vertexCoord[8] = { vec3(coord.x, coord.y, coord.z),
@@ -126,15 +126,17 @@ void main(void)
         }
         edgeCoords[i] = ((vertexCoord[i % 8] + vertexCoord[(i + 1) % 8]) / 2.0f);
     }
+    uint outputIndex = (gl_WorkGroupID.x * 4 * 4 + gl_WorkGroupID.y * 4 + gl_WorkGroupID.z) * 512 * 15 + (gl_LocalInvocationID.x * 8 * 8 + gl_LocalInvocationID.y * 8 + gl_LocalInvocationID.z) * 15;
     for (int i = 0;i < 15;i += 3) {
         if (i >= edgeTriangle[indexa] * 3) {
-            output_tri_data[i + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-            output_tri_data[i + 1 + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-            output_tri_data[i + 2 + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            output_tri_data[i + outputIndex] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            output_tri_data[i + 1 + outputIndex] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            output_tri_data[i + 2 + outputIndex] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
             continue;
         }
-        output_tri_data[i + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(1.0f, edgeCoords[triTable[indexa][i]]);
-        output_tri_data[i + 1 + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(1.0f, edgeCoords[triTable[indexa][i+1]]);
-        output_tri_data[i + 2 + (gl_WorkGroupID.x * numCubes * numCubes + gl_WorkGroupID.y * numCubes + gl_WorkGroupID.z) * 15] = vec4(1.0f, edgeCoords[triTable[indexa][i + 2]]);
+        output_tri_data[i + outputIndex] = vec4(1.0f, edgeCoords[triTable[indexa][i]]);
+        output_tri_data[i + 1 + outputIndex] = vec4(1.0f, edgeCoords[triTable[indexa][i+1]]);
+        output_tri_data[i + 2 + outputIndex] = vec4(1.0f, edgeCoords[triTable[indexa][i + 2]]);
+        //output_tri_data[i + (gl_WorkGroupID.x * 4 * 4 + gl_WorkGroupID.y * 4 + gl_WorkGroupID.z) * 512 * 15 + (gl_LocalInvocationID.x * 8 * 8 + gl_LocalInvocationID.y * 8 + gl_LocalInvocationID.z) * 15] = vec4((gl_WorkGroupID.x * 4 * 4 + gl_WorkGroupID.y * 4 + gl_WorkGroupID.z) * 512 * 15 + (gl_LocalInvocationID.x * 8 * 8 + gl_LocalInvocationID.y * 8 + gl_LocalInvocationID.z) * 15);
     }
 }
