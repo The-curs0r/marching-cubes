@@ -31,6 +31,6 @@ void main(void) {
 	//color = texture(noise, vUv);
 	highp vec3 L = lightPos - fs_in.worldPos;
 	highp float NL = max(dot(fs_in.normal, normalize(L)), 0.0);
-	highp vec3 colort = mix(vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f), fs_in.worldPos.y) / max(1.0, pow(length(L), 1));
+	highp vec3 colort = mix(vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f), fs_in.worldPos.y) / max(1.0, pow(length(L), 2));
 	color = vec4(applyFog(colort * NL * 0.8, length(L), lightPos, cameraDir), 1.0);
 }

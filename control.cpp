@@ -8,8 +8,7 @@ using namespace glm;
 
 glm::mat4 ViewMatrix;///<Output View Matrix
 glm::mat4 ProjectionMatrix;///<Output Projection Matrix
-//glm::vec3 position = glm::vec3(4.30707, 1.27284, 6.55675);///<Initial position on +Z
-glm::vec3 position = glm::vec3(0, 0, 0.0f);///<Initial position on +Z
+glm::vec3 position = glm::vec3(1.0f, 0.0f, 0.0f);///<Initial position on +Z
 float horizontalAngle = 3.14f;///<Initial horizontal angle : toward -Z
 float verticalAngle = 0.0f;///<Initial vertical angle : none
 float initialFoV = 45.0f;///<Initial Field of View

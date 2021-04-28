@@ -1,10 +1,8 @@
 #include <iostream>
 #include <vector>
-#include <set>
 #include <algorithm>
 #include <string>
 #include <utility>
-#include <numeric>
 #include <imgui.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
@@ -68,8 +66,14 @@ std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to s
 int infinite = 0;
 std::vector<glm::vec3> infiniteTris[27];
 std::vector<glm::vec3> infiniteNorm[27];
-glm::vec3 infiniteCenters[27];
 glm::vec3 prevPos;
+int helpFlag = 1;
+std::string helpString = "H : Toggle Help window\n"
+"T : Take Screenshot\n"
+"I : Toggle flat shading and infinite generation\n"
+"Q : Toggle anti-aliasing\n"
+"ESC : Exit"
+;
 
 int triTablea[256][16] =
 { {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -341,10 +345,6 @@ static void cursor_position_callback(GLFWwindow* window, double xpos, double ypo
 {
     glfwGetCursorPos(window, &xpos, &ypos);
 }
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
-{
-    return;
-}
 void CheckFBOStatus(GLuint fbo, GLenum target) {
     GLenum fboStatus = glCheckNamedFramebufferStatus(fbo, target);
     if (fboStatus != GL_FRAMEBUFFER_COMPLETE) {
@@ -408,11 +408,10 @@ int initialize() {
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);//For Key Input
     glfwPollEvents();//Continously Checks For Input
     glfwSetCursorPos(window, 1920 / 2, 1080 / 2);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 #if defined(IMGUI_IMPL_OPENGL_LOADER_GL3W)
     bool err = gl3wInit() != 0;
@@ -567,6 +566,9 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_I) == GLFW_RELEASE)
             infinite = !infinite;
+    if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
+            helpFlag = !helpFlag;
     return;
 }
 void cleanUp() {
@@ -743,7 +745,6 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         pos.x += (xOff);
         pos.y += (yOff);
         pos.z += (zOff);
-        infiniteCenters[ind] = pos;
         computeShader.setVec3("stPoint", pos);
 
         GLuint  data_buffer[2];
@@ -766,8 +767,6 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
 
         computeShader.use();
-        int val = 0;
-        //glad_glGetIntegerv("GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS", &val);
         glDispatchCompute(numCubes/8, numCubes/8, numCubes/8);
 
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -781,7 +780,6 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
         glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
         std::vector<glm::vec3> tris;
-        //std::vector<glm::vec4> temp(ptr, ptr + NUM_ELEMENTS);
         std::vector<glm::vec3> norm;
         int i = 0;
         while (NUM_ELEMENTS) {
@@ -850,7 +848,7 @@ void draw(Shader baseShader) {
 }
 void updateChunks() {
     glm::vec3 curPos = getPosition();
-    float switchDis = 1.0f;
+    float switchDis = 0.75f;
     if ((curPos.x - prevPos.x) > switchDis) {
         prevPos.x += 1.0f;
         for (int i = 0;i < 2;i++)
@@ -994,20 +992,17 @@ int main() {
     if (initialize() < 0)
         return -1;
     pos = getPosition();
-    prevPos = getPosition();
+    prevPos = pos;
     generateTriangles(0,NULL,NULL,NULL,NULL,glm::vec3(NULL));
     for (int i = 0;i < 3;i++)
     {
         for (int j = 0;j < 3;j++)
         {
             for (int k = 0;k < 3;k++) {
-                //if(i * 3 * 3 + j * 3 + k == 0 || i * 3 * 3 + j * 3 + k== 9)
                     generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
             }
         }
     }
-    std::vector<glm::vec3> infi;
-    
     Shader baseShader("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
     Shader flatShader("vShaderFlat.vertexShader.glsl", "fShaderFlat.fragmentShader.glsl");
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -1027,7 +1022,6 @@ int main() {
             draw(baseShader);
         }
         else {
-            //generateTriangles(1);
             updateChunks();           
             flatShader.use();
             computeMatricesFromInputs(window);
@@ -1058,6 +1052,8 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
 
+
+        
         ImGui::SetNextWindowSize(ImVec2(1920.0f, 1080.0f), 0);
         ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f), 0);
         ImGui::Begin("OpenGL Result");
@@ -1074,6 +1070,16 @@ int main() {
             ImGui::EndChild();
         }
         ImGui::End();
+        if (helpFlag) {
+            ImGui::SetNextWindowSize(ImVec2(350.0f, 100.0f), 0);
+            ImGui::SetNextWindowPos(ImVec2(885.0f, 490.0f), 0);
+            ImGui::Begin("Help");
+            {
+                ImGui::Text(helpString.c_str());
+            }
+            ImGui::End();
+        }
+
         ImGui::Render();
         int display_w, display_h;
         glfwGetFramebufferSize(window, &display_w, &display_h);

@@ -15,8 +15,8 @@ vec3 applyFog(in vec3  rgb,      // original color of the pixel
 	in vec3  rayOri,   // camera position
 	in vec3  rayDir)  // camera to point vector
 {
-	float c = 0.1f;
-	float b = 0.4f;
+	float c = 0.3f;
+	float b = 0.9f;
 	float fogAmount = c * exp(-rayOri.y * b) * (1.0 - exp(-distance * rayDir.y * b)) / rayDir.y;
 	vec3  fogColor = vec3(0.5, 0.6, 0.7);
 	return mix(rgb, fogColor, fogAmount);
