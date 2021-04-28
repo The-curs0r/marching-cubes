@@ -49,7 +49,7 @@ const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
 glm::vec3 pos = glm::vec3(0.0f,0.0f,2.0f);
 
-GLuint infinitevao, infinitevbo;
+GLuint infinitevao, infinitevbo, infinitenorm;
 
 GLuint vaot, vbot, nbot, ebot;
 GLuint fbo, resTex, resDep;
@@ -66,9 +66,11 @@ std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
 std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to stored indexed normals
-int infinite = 1;
+int infinite = 0;
 std::vector<glm::vec3> infiniteTris[64];
+std::vector<glm::vec3> infiniteNorm[64];
 glm::vec3 infiniteCenters[64];
+glm::vec3 prevPos;
 
 int triTablea[256][16] =
 { {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -444,6 +446,11 @@ int initialize() {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
+    glGenBuffers(1, &infinitenorm);
+    glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
     //Rendering into FBO
     glCreateFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -558,6 +565,9 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_RELEASE)
             AAFlag= !AAFlag;
+    if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
+        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_RELEASE)
+            infinite = !infinite;
     return;
 }
 void cleanUp() {
@@ -626,7 +636,7 @@ void calcTris() {
 }
 
 
-void generateTriangles(int flag, int ind, int xOff, int yOff, int zOff) {
+void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, glm::vec3 pos) {
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
     if (!flag) {  
@@ -691,15 +701,17 @@ void generateTriangles(int flag, int ind, int xOff, int yOff, int zOff) {
         calcTris();
     }
     else {
+        //std::cout << ind <<" "<< xOff <<" " << yOff <<" " << zOff << " ";
         Shader computeShader("marchShader.computeShader.glsl");
         computeShader.use();
         computeShader.setFloat("inc", length / numCubes);
         computeShader.setInt("numCubes", numCubes);
-        glm::vec3 pos = getPosition();
-        pos.x += (xOff + 0.5f);
-        pos.y += (yOff + 0.5f);
-        pos.z += (zOff + 0.5f);
+        //glm::vec3 pos = getPosition();
+        pos.x += (xOff);
+        pos.y += (yOff);
+        pos.z += (zOff);
         infiniteCenters[ind] = pos;
+        std::cout << ind << " " << pos.x << " " << pos.y << " " << pos.z << "\n";
         computeShader.setVec3("stPoint", pos);
 
         GLuint  data_buffer[2];
@@ -731,21 +743,31 @@ void generateTriangles(int flag, int ind, int xOff, int yOff, int zOff) {
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
         glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
         std::vector<glm::vec3> tris;
-        int val = 0;
-        while (NUM_ELEMENTS--) {
-            if ((*ptr).x == 0 || (*ptr).x == 255)
-                val++;
+        std::vector<glm::vec3> norm;
+        int i = 0;
+        while (NUM_ELEMENTS) {
+            NUM_ELEMENTS -= 3;
             if ((*ptr).x) {
                 tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
                 ptr++;
+                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                ptr++;
+                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                ptr++;
+                i += 3;
+                glm::vec3 normal = glm::normalize(glm::cross(tris[i-1]-tris[i-3], tris[i - 2] - tris[i - 3]));
+                norm.push_back(normal);
+                norm.push_back(normal);
+                norm.push_back(normal);
             }
             else {
-                ptr += 1;
+                ptr += 3;
             }
         }
         glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
         glDeleteBuffers(2, data_buffer);
         infiniteTris[ind] = tris;
+        infiniteNorm[ind] = norm;
         computeShader.deleteProg();
     }
     return;
@@ -774,6 +796,8 @@ void draw(Shader baseShader) {
     baseShader.setMat4("proj_matrix", ProjectionMatrix);
     baseShader.setVec3("lightPos", getPosition());
     baseShader.setVec3("cameraDir", getDirection());
+    glBindVertexArray(vaot);
+
     for (int i = 0;i < xrange * yrange * zrange;i++) {
         if (indexed_vertices[i].size()) {
             glBindBuffer(GL_ARRAY_BUFFER, vbot);
@@ -790,62 +814,194 @@ void draw(Shader baseShader) {
 
     return;
 }
+void updateChunks() {
+    glm::vec3 curPos = getPosition();
+    float switchDis = 1.0f;
+    //std::cout << curPos.x << "\n";
+    if ((curPos.x - prevPos.x) > switchDis) {
+        prevPos.x += 1.0f;
+        for (int i = 0;i < 2;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k + 9];
+                    infiniteNorm[i * 3 * 3 + j * 3 + k] = infiniteNorm[i * 3 * 3 + j * 3 + k + 9];
+                }
+            }
+        }
+        for (int i = 2;i < 3;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                }
+            }
+        }
+        return;
+    }
+    else if ((curPos.x - prevPos.x) < -switchDis) {
+        prevPos.x -= 1.0f;
+        for (int i = 2;i >0;i--)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k - 9];
+                    infiniteNorm[i * 3 * 3 + j * 3 + k] = infiniteNorm[i * 3 * 3 + j * 3 + k - 9];
+                }
+            }
+        }
+        for (int i = 0;i < 1;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                }
+            }
+        }
+        return;
+    }
+    if ((curPos.y - prevPos.y) > switchDis) {
+        prevPos.y += 1.0f;
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 0;j < 2;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k + 3];
+                    infiniteNorm[i * 3 * 3 + j * 3 + k] = infiniteNorm[i * 3 * 3 + j * 3 + k + 3];
+                }
+            }
+        }
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 2;j < 3;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                }
+            }
+        }
+        return;
+    }
+    else if ((curPos.y - prevPos.y) < -switchDis) {
+        prevPos.y -= 1.0f;
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 2;j >0 ;j--)
+            {
+                for (int k = 0;k < 3;k++) {
+                    infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k - 3];
+                    infiniteNorm[i * 3 * 3 + j * 3 + k] = infiniteNorm[i * 3 * 3 + j * 3 + k - 3];
+                }
+            }
+        }
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 0;j < 1;j++)
+            {
+                for (int k = 0;k < 3;k++) {
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                }
+            }
+        }
+        return;
+    }
+    if ((curPos.z - prevPos.z) > switchDis) {
+        prevPos.z += 1.0f;
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 0;k < 2;k++) {
+                    infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k + 1];
+                    infiniteNorm[i * 3 * 3 + j * 3 + k] = infiniteNorm[i * 3 * 3 + j * 3 + k + 1];
+                }
+            }
+        }
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 2;k < 3;k++) {
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                }
+            }
+        }
+        return;
+    }
+    else if ((curPos.z - prevPos.z) < -switchDis) {
+        prevPos.z -= 1.0f;
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 2;k > 0;k--) {
+                    infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k - 1];
+                    infiniteNorm[i * 3 * 3 + j * 3 + k] = infiniteNorm[i * 3 * 3 + j * 3 + k - 1];
+                }
+            }
+        }
+        for (int i = 0;i < 3;i++)
+        {
+            for (int j = 0;j < 3;j++)
+            {
+                for (int k = 0;k < 1;k++) {
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                }
+            }
+        }
+        return;
+    }
+}
 int main() {
 
 
     if (initialize() < 0)
         return -1;
 
-    generateTriangles(0,NULL,NULL,NULL,NULL);
-    for (int i = 0;i < 2;i++)
+    pos = getPosition();
+    prevPos = getPosition();
+    generateTriangles(0,NULL,NULL,NULL,NULL,glm::vec3(NULL));
+    for (int i = 0;i < 3;i++)
     {
-        for (int j = 0;j < 2;j++)
+        for (int j = 0;j < 3;j++)
         {
-            for (int k = 0;k < 2;k++) {
-                generateTriangles(1, i * 2 * 2 + j * 2 + k, i-1, j - 1, k - 1);
+            for (int k = 0;k < 3;k++) {
+                //if(i * 3 * 3 + j * 3 + k == 0 || i * 3 * 3 + j * 3 + k== 9)
+                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
             }
         }
     }
 
     Shader baseShader("vShader.vertexShader.glsl", "fShader.fragmentShader.glsl");
-    Shader flatShader("vShaderFlat.vertexShader.glsl", "fShaderFlat.fragmentShader.glsl","gShaderFlat.geometryShader.glsl");
+    Shader flatShader("vShaderFlat.vertexShader.glsl", "fShaderFlat.fragmentShader.glsl");
 
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     while (!glfwWindowShouldClose(window))
     {
-
         processInput(window);
         cursor_position_callback(window, xpos, ypos);
 
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        glClearColor(0.0f, 0.0f, 0.2f, 0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glEnable(GL_DEPTH_TEST);
         glBindFramebuffer(GL_FRAMEBUFFER, mul_fbo);
 
         //Draw calls here
         if (!infinite) {
-            baseShader.use();
             draw(baseShader);
         }
         else {
             //generateTriangles(1);
-            int flag = 0,level=0;
-            glm::vec3 curPos = getPosition();
-            for (int i = 0;i < 2;i++) {
-                for (int j = 0;j < 2;j++) {
-                    for (int k = 0;k < 2;k++) {
-                        std::cout << glm::length(curPos - infiniteCenters[i * 2 * 2 + j * 2 + k]) << "\n";
-                        if (glm::length(curPos - infiniteCenters[i * 2 * 2 + j * 2 + k]) > sqrt(3)) {
-                            //flag = 0;
-                            generateTriangles(1, i * 2 * 2 + j * 2 + k, i-1, j-1, k-1);
-                        }
-                    }
-                }
-            }
-            std::cout << "\n";
+            updateChunks();
+                  
             flatShader.use();
             computeMatricesFromInputs(window);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -854,14 +1010,20 @@ int main() {
             glm::mat4 ViewMatrix = getViewMatrix();
             flatShader.setMat4("mv_matrix", ViewMatrix);
             flatShader.setMat4("proj_matrix", ProjectionMatrix);
-            flatShader.setVec3("lightPos", getPosition());
+            flatShader.setVec3("lightPos", getPosition() );
             flatShader.setVec3("cameraDir", getDirection());
             glBindVertexArray(infinitevao);
             glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
-            for (int i = 0;i < 8;i++) {
+            for (int i = 0;i < 27;i++) {
                 if (infiniteTris[i].size()) {
+                    glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
                     glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
+                    glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
+                    glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
                     glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+                }
+                else {
+                    std::cout << "Empty " << i << "\n";
                 }
             }
            

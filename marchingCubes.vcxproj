@@ -185,7 +185,6 @@
   <ItemGroup>
     <None Include="fShader.fragmentShader.glsl" />
     <None Include="fShaderFlat.fragmentShader.glsl" />
-    <None Include="gShaderFlat.geometryShader.glsl" />
     <None Include="marchShader.computeShader.glsl" />
     <None Include="vShader.vertexShader.glsl" />
     <None Include="vShaderFlat.vertexShader.glsl" />
