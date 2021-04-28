@@ -34,6 +34,6 @@ void main(void) {
 	highp vec3 L = fs_in.lightPos - fs_in.worldPos;
 	highp float NL = max(dot(fs_in.normal, normalize(L)), 0.0);
 	highp vec3 colort = mix(vec3(1.0f, 0.0f, 0.0f), vec3(0.0f, 0.0f, 1.0f), fs_in.worldPos.y) / max(1.0, pow(length(L), 2));
-	color = vec4(applyFog(colort * NL, length(L), fs_in.lightPos, cameraDir) + colort*0.2, 1.0);
+	color = vec4(applyFog(colort * NL * 0.8f, length(L), fs_in.lightPos, cameraDir) + colort*0.2f, 1.0);
 	//color = vec4(abs(fs_in.normal), 1.0);
 }
