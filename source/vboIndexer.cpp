@@ -1,7 +1,7 @@
 #include <vector>
 #include <map>
 #include <glm/glm.hpp>
-#include "vboindexer.hpp"
+#include "vboIndexer.hpp"
 #include <string.h>
 
 struct PackedVertex {

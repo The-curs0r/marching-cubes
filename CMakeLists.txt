@@ -6,7 +6,7 @@ set(LIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps")
 set(SOURCES 
 "${SRC_DIR}/Source.cpp" 
 "${SRC_DIR}/control.cpp" 
-"${SRC_DIR}/vboindexer.cpp" 
+"${SRC_DIR}/vboIndexer.cpp" 
 "${LIB_DIR}/imgui/imgui.cpp" 
 "${LIB_DIR}/imgui/imgui_demo.cpp" 
 "${LIB_DIR}/imgui/imgui_draw.cpp" 
@@ -19,7 +19,7 @@ set(SOURCES
 )
 set(HEADERS 
 "${SRC_DIR}/control.hpp" 
-"${SRC_DIR}/vboindexer.hpp" 
+"${SRC_DIR}/vboIndexer.hpp" 
 "${SRC_DIR}/shader.hpp" 
 "${SRC_DIR}/triangleFace.hpp" 
 "${LIB_DIR}/imgui/imgui.h" 
