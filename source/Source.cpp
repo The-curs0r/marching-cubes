@@ -56,9 +56,9 @@ ImVec2 vMin, vMax;
 double xpos, ypos; //For mouse input
 int takeImage = 0;
 bool AAFlag = false, prevAAFlag = false;
-const int xrange = 1;
+const int xrange = 5;
 const int yrange = 3;
-const int zrange = 1;
+const int zrange = 5;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
