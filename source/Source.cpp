@@ -56,16 +56,16 @@ ImVec2 vMin, vMax;
 double xpos, ypos; //For mouse input
 int takeImage = 0;
 bool AAFlag = false, prevAAFlag = false;
-const int xrange = 10;
+const int xrange = 1;
 const int yrange = 3;
-const int zrange = 10;
+const int zrange = 1;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
 std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to stored indexed normals
 int infinite = 0;
-std::vector<glm::vec3> infiniteTris[27];
-std::vector<glm::vec3> infiniteNorm[27];
+std::vector<glm::vec3> infiniteTris[28];
+std::vector<glm::vec3> infiniteNorm[28];
 glm::vec3 prevPos;
 int helpFlag = 1;
 std::string helpString = "H : Toggle Help window\n"
@@ -565,7 +565,7 @@ void processInput(GLFWwindow* window)
             AAFlag= !AAFlag;
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_I) == GLFW_RELEASE)
-            infinite = !infinite;
+            infinite = (infinite+1)%3;
     if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
             helpFlag = !helpFlag;
@@ -1021,7 +1021,7 @@ int main() {
         if (!infinite) {
             draw(baseShader);
         }
-        else {
+        else if(infinite == 1) {
             updateChunks();           
             flatShader.use();
             computeMatricesFromInputs(window);
@@ -1035,6 +1035,29 @@ int main() {
             glBindVertexArray(infinitevao);
             glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
             for (int i = 0;i < 27;i++) {
+                if (infiniteTris[i].size()) {
+                    glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
+                    glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
+                    glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
+                    glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
+                    glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+                }
+            }
+        }
+        else {
+            generateTriangles(1, 27, 0, 0, 0, getPosition()-glm::vec3(0.5f));
+            flatShader.use();
+            computeMatricesFromInputs(window);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glm::mat4 ProjectionMatrix = getProjectionMatrix();
+            glm::mat4 ViewMatrix = getViewMatrix();
+            flatShader.setMat4("mv_matrix", ViewMatrix);
+            flatShader.setMat4("proj_matrix", ProjectionMatrix);
+            flatShader.setVec3("lightPos", getPosition());
+            flatShader.setVec3("cameraDir", getDirection());
+            glBindVertexArray(infinitevao);
+            glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
+            for (int i = 27;i < 28;i++) {
                 if (infiniteTris[i].size()) {
                     glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
                     glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);

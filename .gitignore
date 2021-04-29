@@ -3,7 +3,7 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-Deps/
+deps/
 Textures/
 imgui.ini
 SimplexNoise.h
@@ -11,6 +11,9 @@ stb_image.h
 SimplexNoise.cpp
 *.tga
 *.png
+marchingCubes.sln
+marchingCubes.vcxproj
+marchingCubes.vcxproj.filters
 
 # User-specific files
 *.rsuser
