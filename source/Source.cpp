@@ -392,7 +392,7 @@ int initialize() {
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //Borderless in release mode, don't fool around unless you want to sign out or restart
 #if defined(_DEBUG)
-    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Template", NULL, NULL);
+    window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Marching Cubes", NULL, NULL);
 #else
     GLFWmonitor* primary = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primary);
@@ -400,7 +400,7 @@ int initialize() {
     glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
     glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
     glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
-    window = glfwCreateWindow(mode->width, mode->height, "Template", primary, NULL);
+    window = glfwCreateWindow(mode->width, mode->height, "Marching Cubes", primary, NULL);
 #endif
     if (window == NULL)
     {
