@@ -13,10 +13,12 @@ set(SOURCES
 "${LIB_DIR}/imgui/imgui_tables.cpp" 
 "${LIB_DIR}/imgui/imgui_widgets.cpp" 
 "${LIB_DIR}/imgui/backends/imgui_impl_opengl3.cpp" 
-"${LIB_DIR}/imgui/backends/imgui_impl_win32.cpp" 
 "${LIB_DIR}/imgui/backends/imgui_impl_glfw.cpp" 
-"${LIB_DIR}/glad/src/glad.c"
+"${LIB_DIR}/glad/src/glad.c" 
 )
+if(WIN32)
+	set(SOURCES ${SOURCES} "${LIB_DIR}/imgui/backends/imgui_impl_win32.cpp ")
+endif()
 set(HEADERS 
 "${SRC_DIR}/control.hpp" 
 "${SRC_DIR}/vboIndexer.hpp" 
@@ -29,9 +31,11 @@ set(HEADERS
 "${LIB_DIR}/imgui/imstb_textedit.h" 
 "${LIB_DIR}/imgui/imstb_truetype.h" 
 "${LIB_DIR}/imgui/backends/imgui_impl_opengl3.h" 
-"${LIB_DIR}/imgui/backends/imgui_impl_win32.h" 
 "${LIB_DIR}/imgui/backends/imgui_impl_glfw.h" 
 )
+if(WIN32)
+	set(SOURCES ${SOURCES} "${LIB_DIR}/imgui/backends/imgui_impl_win32.h ")
+endif()
 set(SHADERS 
 "${SRC_DIR}/vShader.vertexShader.glsl" 
 "${SRC_DIR}/vShaderFlat.vertexShader.glsl" 
@@ -39,6 +43,12 @@ set(SHADERS
 "${SRC_DIR}/fShaderFlat.fragmentShader.glsl" 
 "${SRC_DIR}/marchShader.computeShader.glsl" 
 )
+
+if(UNIX AND NOT APPLE)
+	set (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -g -ldl")
+	add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
+endif()
+
 file(COPY ${SHADERS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 # glad
 include_directories("${LIB_DIR}/imgui" "${LIB_DIR}/glm/glm" "${LIB_DIR}/glad/include")

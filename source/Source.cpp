@@ -32,7 +32,9 @@ using namespace gl;
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#ifdef _WIN32
 #include <Windows.h>
+#endif
 #include "shader.hpp"
 #include "control.hpp"
 #include "vboIndexer.hpp"
@@ -532,8 +534,10 @@ void takeSS() {
     fclose(f_out);
 
     //Converting to PNG
+#ifdef _WIN32
     WinExec("cd ..", 1);
     WinExec("magick \"./ScreenShot.tga\" -flip \"./Screenshot.png\"", 1);
+#endif
 
     return;
 }
