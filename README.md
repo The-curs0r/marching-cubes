@@ -21,9 +21,6 @@ copy *.glsl ./Release/
 cd Release
 start .\marchingCubes.exe
 ```
-* (Optional) If you want the screenshot as .png also :
-	* Install [ImageMagick](https://imagemagick.org/script/download.php) for Windows.
-	* Now the screenshot will be generated both as a .tga file and a .png file.
 
 ## How To Run This On Linux
 * Clone the repository including the submodules using : 

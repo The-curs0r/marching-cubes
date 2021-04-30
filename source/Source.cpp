@@ -534,12 +534,6 @@ void takeSS() {
     fwrite(data, dataSize, 1, f_out);
     fclose(f_out);
 
-    //Converting to PNG
-#ifdef _WIN32
-    WinExec("cd ..", 1);
-    WinExec("magick \"./ScreenShot.tga\" -flip \"./Screenshot.png\"", 1);
-#endif
-
     return;
 }
 void changeSamples(GLsizei flag) {
