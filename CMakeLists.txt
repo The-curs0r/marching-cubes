@@ -43,15 +43,21 @@ set(SHADERS
 "${SRC_DIR}/fShaderFlat.fragmentShader.glsl" 
 "${SRC_DIR}/marchShader.computeShader.glsl" 
 )
-
 if(UNIX AND NOT APPLE)
-	set (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -g -ldl")
+	find_package(GLEW)
+	if (GLEW_FOUND)
+		message("GLEW already present")
+		set (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -g -ldl -lGL -lGLU -lGLEW")
+	else()
+		message("GLEW not present")
+		set (CMAKE_CXX_LINK_EXECUTABLE "${CMAKE_CXX_LINK_EXECUTABLE} -g -ldl")
+	endif()
 	add_definitions(${GCC_COVERAGE_COMPILE_FLAGS})
 endif()
 
 file(COPY ${SHADERS} DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 # glad
-include_directories("${LIB_DIR}/imgui" "${LIB_DIR}/glm/glm" "${LIB_DIR}/glad/include")
+include_directories("${LIB_DIR}/imgui" "${LIB_DIR}/glm" "${LIB_DIR}/glad/include")
 
 add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES} ${SHADERS})
 target_include_directories(${PROJECT_NAME} PRIVATE "${SRC_DIR}")
@@ -67,4 +73,3 @@ add_subdirectory("${GLFW_DIR}")
 target_link_libraries(${PROJECT_NAME} "glfw" "${GLFW_LIBRARIES}")
 target_include_directories(${PROJECT_NAME} PRIVATE "${GLFW_DIR}/include")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "GLFW_INCLUDE_NONE")
-
