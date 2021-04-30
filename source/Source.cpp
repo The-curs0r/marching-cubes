@@ -389,6 +389,7 @@ int initialize() {
     const char* glsl_version = "#version 450";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //Borderless in release mode, don't fool around unless you want to sign out or restart
 #if defined(_DEBUG)
     window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Template", NULL, NULL);
