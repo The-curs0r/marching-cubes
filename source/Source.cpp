@@ -639,7 +639,7 @@ void calcTris() {
 void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, glm::vec3 pos) {
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
     std::cout << "-----------------\n";
     LARGE_INTEGER frequency;
     LARGE_INTEGER t1, t2, t3, t4;
@@ -651,7 +651,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         for (int i = 0;i < xrange;i++) {
             for (int j = 0;j < yrange;j++) {
                 for (int k = 0;k < zrange;k++) {
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
                     QueryPerformanceCounter(&t3);
 #endif
 
@@ -690,7 +690,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                     glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
 
                     glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
                     QueryPerformanceCounter(&t4);
                     elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
                     std::cout << elapsedTime << "ms to generate vertices for chunk at( "<<i<<","<<j<<"," << k<<" )\n";
@@ -707,7 +707,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                             ptr += 1;
                         }
                     }
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
                     QueryPerformanceCounter(&t4);
                     elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
                     std::cout << elapsedTime << "ms to iterate over generated vertices\n";
@@ -720,7 +720,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                 }
             }
         }
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
         std::cout <<"\n";
         QueryPerformanceCounter(&t2);
         elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
@@ -728,7 +728,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         QueryPerformanceCounter(&t1);
 #endif
         calcTris();
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
         QueryPerformanceCounter(&t2);
         elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
         std::cout << elapsedTime << "ms to index vertices and calculate normals for each chunk\n";
@@ -770,7 +770,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
 
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         glFinish();
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
         QueryPerformanceCounter(&t2);
         elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
         std::cout << elapsedTime << "ms to generate vertices for chunk at( " << pos.x << "," << pos.y << "," << pos.z << " )\n";
@@ -805,7 +805,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         infiniteTris[ind] = tris;
         infiniteNorm[ind] = norm;
         computeShader.deleteProg();
-#if defined(_DEBUG)
+#if defined(_DEBUG) && defined(_WIN32)
         QueryPerformanceCounter(&t2);
         elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
         std::cout << elapsedTime << "ms to copy vertices and compute normals\n";
