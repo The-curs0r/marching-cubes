@@ -38,7 +38,6 @@ using namespace gl;
 #include "shader.hpp"
 #include "control.hpp"
 #include "vboIndexer.hpp"
-#include "triangleFace.hpp"
 
 //extern "C" {
 //    _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -601,7 +600,6 @@ void cleanUp() {
 }
 
 void calcTris() {
-    std::vector<triangleFace> faces;
     for (int i = 0;i < xrange * yrange * zrange;i++) {
         indexVBO(finalTris[i], finalNorm[i], indices[i], indexed_vertices[i], indexed_normals[i]);
     }
