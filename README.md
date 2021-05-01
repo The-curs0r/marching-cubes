@@ -45,3 +45,7 @@ make all
 If you find a bug, or are unable to build the project or run the application, let me know through an issue [here](https://github.com/The-curs0r/marching-cubes/issues/new?assignees=&labels=&template=bug_report.md&title=).
 
 If you have any ideas or suggestions for this project, please put them [here](https://github.com/The-curs0r/marching-cubes/issues/new?assignees=&labels=&template=feature_request.md&title=).
+
+## Screenshots 
+![](screenshots/SmoothShading.jpg)
+![](screenshots/FlatShading.jpg)

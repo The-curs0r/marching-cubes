@@ -55,6 +55,8 @@ const int zrange = 5;
 const int numCubes = 32; //Change in compute shader too
 //Side length of each chunk
 float length = 1.0f;
+//Update chunks after travelling this distance
+float switchDis = 0.75f;
 
 glm::vec3 pos = glm::vec3(0.0f, 0.0f, 2.0f);
 glm::vec3 prevPos;
@@ -796,7 +798,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
 }
 void updateChunks() {
     glm::vec3 curPos = getPosition();
-    float switchDis = 0.75f;
+
     if ((curPos.x - prevPos.x) > switchDis) {
         prevPos.x += 1.0f;
         for (int i = 0;i < 2;i++)
