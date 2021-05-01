@@ -47,7 +47,7 @@ GLFWwindow* window;
 const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
 glm::vec3 pos = glm::vec3(0.0f, 0.0f, 2.0f);
-
+glm::vec3 prevPos;
 GLuint infinitevao, infinitevbo, infinitenorm;
 
 GLuint vaot, vbot, nbot, ebot;
@@ -68,7 +68,11 @@ std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to s
 int infinite = 0;
 std::vector<glm::vec3> infiniteTris[28];
 std::vector<glm::vec3> infiniteNorm[28];
-glm::vec3 prevPos;
+struct vertexData {
+    glm::vec4  vertexPos;
+    glm::vec4  vertexNormal;
+};
+
 int helpFlag = 1;
 std::string helpString = "H : Toggle Help window\n"
 "T : Take Screenshot\n"
@@ -452,7 +456,7 @@ int initialize() {
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-    //Rendering into FBO
+    //Setup for rendering into FBO
     glCreateFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
@@ -503,7 +507,6 @@ void takeSS() {
     //Saving as .TGA
     int rowSize = ((SCR_WIDTH * 3 + 3) & ~3);
     int dataSize = SCR_HEIGHT * rowSize;
-    //std::cout << "Image size " << dataSize << "\n";
     unsigned char* data = new unsigned char[dataSize];
 #pragma pack (push,1) //Aligns structure members on 1-byte boundaries, or on their natural alignment boundary, whichever is less.
     struct
@@ -552,8 +555,7 @@ void changeSamples(GLsizei flag) {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     return;
 }
-void processInput(GLFWwindow* window)
-{
+void processInput(GLFWwindow* window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
     if (glfwGetKey(window, GLFW_KEY_T) == GLFW_PRESS)
@@ -563,15 +565,19 @@ void processInput(GLFWwindow* window)
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_RELEASE)
             AAFlag = !AAFlag;
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
-        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_RELEASE)
+        if (glfwGetKey(window, GLFW_KEY_I) == GLFW_RELEASE) {
             infinite = (infinite + 1) % 3;
+            if (!infinite) {
+                resetCamera();
+                pos = getPosition();
+            }
+        }
     if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
             helpFlag = !helpFlag;
     return;
 }
 void cleanUp() {
-
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -579,56 +585,45 @@ void cleanUp() {
     glfwDestroyWindow(window);
     glfwTerminate();
 
+    //Delete framebuffers
     glDeleteFramebuffers(1, &fbo);
     glDeleteFramebuffers(1, &mul_fbo);
+
+    //Delete vertex arrays
     glDeleteVertexArrays(1, &vaot);
+    glDeleteVertexArrays(1, &infinitevao);
+
+    //Delete buffers
     glDeleteBuffers(1, &vbot);
     glDeleteBuffers(1, &nbot);
     glDeleteBuffers(1, &ebot);
+    glDeleteBuffers(1, &infinitevbo);
+    glDeleteBuffers(1, &infinitenorm);
 
+    //Delete textures
     glDeleteTextures(1, &mul_resTex);
     glDeleteTextures(1, &mul_resDep);
     glDeleteTextures(1, &resDep);
     glDeleteTextures(1, &resTex);
 
+    //Clear vectors
     indexed_normals->clear();
     indexed_vertices->clear();
     indices->clear();
     finalTris->clear();
+    finalNorm->clear();
+    infiniteTris->clear();
+    infiniteNorm -> clear();
 
     return;
 }
-
-void calcTris() {
-    for (int i = 0;i < xrange * yrange * zrange;i++) {
-        indexVBO(finalTris[i], finalNorm[i], indices[i], indexed_vertices[i], indexed_normals[i]);
-    }
-    glGenBuffers(1, &vbot);
-    glGenBuffers(1, &nbot);
-    glGenVertexArrays(1, &vaot);
-    glBindVertexArray(vaot);
-    glEnableVertexAttribArray(0);
-    glEnableVertexAttribArray(1);
-
-    glBindBuffer(GL_ARRAY_BUFFER, vbot);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, nbot);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
-
-    glGenBuffers(1, &ebot);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
-}
-void dbg(glm::vec3 pt) {
-    std::cout << pt.x << " " << pt.y << " " << pt.z << "\n";
-}
-struct vertexData {
-    glm::vec4  vertexPos;
-    glm::vec4  vertexNormal;
-};
 void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, glm::vec3 pos) {
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
+
+    int imax = flag ? 1 : xrange;
+    int jmax = flag ? 1 : yrange;
+    int kmax = flag ? 1 : zrange;
 #if defined(_DEBUG) && defined(_WIN32)
     std::cout << "-----------------\n";
     LARGE_INTEGER frequency;
@@ -637,23 +632,27 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&t1);
 #endif
-    if (!flag) {
-        for (int i = 0;i < xrange;i++) {
-            for (int j = 0;j < yrange;j++) {
-                for (int k = 0;k < zrange;k++) {
+        for (int i = 0;i < imax;i++) {
+            for (int j = 0;j < jmax;j++) {
+                for (int k = 0;k < kmax;k++) {
 #if defined(_DEBUG) && defined(_WIN32)
                     QueryPerformanceCounter(&t3);
 #endif
-
                     Shader computeShader("marchShader.computeShader.glsl");
                     computeShader.use();
                     computeShader.setFloat("inc", length / numCubes);
                     computeShader.setInt("numCubes", numCubes);
-                    computeShader.setVec3("stPoint", glm::vec3(i - 1, j - 1, k - 1));
+                    if(!flag)
+                        computeShader.setVec3("stPoint", glm::vec3(i - 1, j - 1, k - 1));
+                    else {
+                        pos.x += (xOff);
+                        pos.y += (yOff);
+                        pos.z += (zOff);
+                        computeShader.setVec3("stPoint", pos);
+                    }
 
                     GLuint  data_buffer[2];
                     int NUM_ELEMENTS = numCubes * numCubes * numCubes * 15;
-                    //NUM_ELEMENTS *= 2;
 
                     glGenBuffers(2, data_buffer);
 
@@ -681,12 +680,23 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                     glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
 
                     vertexData* ptr = (vertexData*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vertexData) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+                    if (!flag) {
 #if defined(_DEBUG) && defined(_WIN32)
-                    QueryPerformanceCounter(&t4);
-                    elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
-                    std::cout << elapsedTime << "ms to generate vertices for chunk at( " << i << "," << j << "," << k << " )\n";
-                    QueryPerformanceCounter(&t3);
+                        QueryPerformanceCounter(&t4);
+                        elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
+                        std::cout << elapsedTime << "ms to generate vertices for chunk at( " << i << "," << j << "," << k << " )\n";
+                        QueryPerformanceCounter(&t3);
 #endif
+                    }
+                    else {
+#if defined(_DEBUG) && defined(_WIN32)
+                        QueryPerformanceCounter(&t2);
+                        elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
+                        std::cout << elapsedTime << "ms to generate vertices for chunk at( " << pos.x << "," << pos.y << "," << pos.z << " )\n";
+                        QueryPerformanceCounter(&t1);
+#endif
+                    }
+
                     std::vector<glm::vec3> tris;
                     std::vector<glm::vec3> normals;
                     while (NUM_ELEMENTS) {
@@ -706,140 +716,69 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                             ptr += 3;
                         }
                     }
+                    if (!flag) {
 #if defined(_DEBUG) && defined(_WIN32)
-                    QueryPerformanceCounter(&t4);
-                    elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
-                    std::cout << elapsedTime << "ms to iterate over generated vertices\n";
-                    QueryPerformanceCounter(&t3);
+                        QueryPerformanceCounter(&t4);
+                        elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
+                        std::cout << elapsedTime << "ms to iterate over generated vertices and normals\n";
+                        QueryPerformanceCounter(&t3);
 #endif
+                    }
                     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
                     glDeleteBuffers(2, data_buffer);
-                    finalTris[i * zrange * yrange + j * zrange + k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
-                    finalNorm[i * zrange * yrange + j * zrange + k].insert(finalNorm[i * zrange * yrange + j * zrange + k].end(), normals.begin(), normals.end());
+                    if (!flag) {
+                        finalTris[i * zrange * yrange + j * zrange + k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
+                        finalNorm[i * zrange * yrange + j * zrange + k].insert(finalNorm[i * zrange * yrange + j * zrange + k].end(), normals.begin(), normals.end());
+                    }
+                    else {
+                        infiniteTris[ind] = tris;
+                        infiniteNorm[ind] = normals;
+                    }
+                    if (flag) {
+#if defined(_DEBUG) && defined(_WIN32)
+                        QueryPerformanceCounter(&t2);
+                        elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
+                        std::cout << elapsedTime << "ms to copy vertices and compute normals\n";
+                        std::cout << "-----------------\n";
+#endif
+                    }
                     computeShader.deleteProg();
                 }
             }
         }
+       if (!flag) {
 #if defined(_DEBUG) && defined(_WIN32)
-        std::cout << "\n";
-        QueryPerformanceCounter(&t2);
-        elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
-        std::cout << elapsedTime << "ms to generate all chunks\n";
-        QueryPerformanceCounter(&t1);
+           std::cout << "\n";
+           QueryPerformanceCounter(&t2);
+           elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
+           std::cout << elapsedTime << "ms to generate all chunks\n";
+           QueryPerformanceCounter(&t1);
 #endif
-        calcTris();
-#if defined(_DEBUG) && defined(_WIN32)
-        QueryPerformanceCounter(&t2);
-        elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
-        std::cout << elapsedTime << "ms to index vertices and calculate normals for each chunk\n";
-        std::cout << "-----------------\n";
-#endif
-    }
-    else {
-        Shader computeShader("marchShader.computeShader.glsl");
-        computeShader.use();
-        computeShader.setFloat("inc", length / numCubes);
-        computeShader.setInt("numCubes", numCubes);
-        //glm::vec3 pos = getPosition();
-        pos.x += (xOff);
-        pos.y += (yOff);
-        pos.z += (zOff);
-        computeShader.setVec3("stPoint", pos);
-
-        GLuint  data_buffer[2];
-        int NUM_ELEMENTS = numCubes * numCubes * numCubes * 15;
-
-        glGenBuffers(2, data_buffer);
-
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(vertexData), NULL, GL_DYNAMIC_COPY);
-
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
-
-        glShaderStorageBlockBinding(computeShader.ID, 0, 0);
-        glShaderStorageBlockBinding(computeShader.ID, 1, 1);
-
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
-
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
-
-        computeShader.use();
-        glDispatchCompute(numCubes / 8, numCubes / 8, numCubes / 8);
-
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-        glFinish();
-#if defined(_DEBUG) && defined(_WIN32)
-        QueryPerformanceCounter(&t2);
-        elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
-        std::cout << elapsedTime << "ms to generate vertices for chunk at( " << pos.x << "," << pos.y << "," << pos.z << " )\n";
-        QueryPerformanceCounter(&t1);
-#endif
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
-        vertexData* ptr = (vertexData*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vertexData) * NUM_ELEMENTS, GL_MAP_READ_BIT);
-        std::vector<glm::vec3> tris;
-        std::vector<glm::vec3> norm;
-        while (NUM_ELEMENTS) {
-            NUM_ELEMENTS -= 3;
-            if ((*ptr).vertexPos.x) {
-                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
-                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
-                ptr++;
-                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
-                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
-                ptr++;
-                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
-                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
-                ptr++;
+            for (int i = 0;i < xrange * yrange * zrange;i++) {
+                indexVBO(finalTris[i], finalNorm[i], indices[i], indexed_vertices[i], indexed_normals[i]);
             }
-            else {
-                ptr += 3;
-            }
-        }
-        glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-        glDeleteBuffers(2, data_buffer);
-        infiniteTris[ind] = tris;
-        infiniteNorm[ind] = norm;
-        computeShader.deleteProg();
-#if defined(_DEBUG) && defined(_WIN32)
-        QueryPerformanceCounter(&t2);
-        elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
-        std::cout << elapsedTime << "ms to copy vertices and compute normals\n";
-        std::cout << "-----------------\n";
-#endif
-    }
-    return;
-}
+            glGenBuffers(1, &vbot);
+            glGenBuffers(1, &nbot);
+            glGenVertexArrays(1, &vaot);
+            glBindVertexArray(vaot);
+            glEnableVertexAttribArray(0);
+            glEnableVertexAttribArray(1);
 
-void draw(Shader baseShader) {
-    baseShader.use();
-    pos = getPosition();
-    computeMatricesFromInputs(window);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glm::mat4 ProjectionMatrix = getProjectionMatrix();
-    glm::mat4 ViewMatrix = getViewMatrix();
-    baseShader.setMat4("mv_matrix", ViewMatrix);
-    baseShader.setMat4("proj_matrix", ProjectionMatrix);
-    baseShader.setVec3("lightPos", getPosition());
-    baseShader.setVec3("cameraDir", getDirection());
-    glBindVertexArray(vaot);
-
-    for (int i = 0;i < xrange * yrange * zrange;i++) {
-        if (indexed_vertices[i].size()) {
             glBindBuffer(GL_ARRAY_BUFFER, vbot);
-            glBufferData(GL_ARRAY_BUFFER, indexed_vertices[i].size() * sizeof(glm::vec3), &indexed_vertices[i][0], GL_STATIC_DRAW);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
             glBindBuffer(GL_ARRAY_BUFFER, nbot);
-            glBufferData(GL_ARRAY_BUFFER, indexed_normals[i].size() * sizeof(glm::vec3), &indexed_normals[i][0], GL_STATIC_DRAW);
+            glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 
+            glGenBuffers(1, &ebot);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices[i].size() * sizeof(unsigned short), &indices[i][0], GL_STATIC_DRAW);
-            glDrawElements(GL_TRIANGLES, indices[i].size(), GL_UNSIGNED_SHORT, (void*)(0));
-        }
-    }
-
+#if defined(_DEBUG) && defined(_WIN32)
+            QueryPerformanceCounter(&t2);
+            elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
+            std::cout << elapsedTime << "ms to index vertices and normals for each chunk\n";
+            std::cout << "-----------------\n";
+#endif
+       }
     return;
 }
 void updateChunks() {
@@ -1015,33 +954,36 @@ int main() {
         glBindFramebuffer(GL_FRAMEBUFFER, mul_fbo);
         //Draw calls here
         if (!infinite) {
-            draw(baseShader);
-        }
-        else if (infinite == 1) {
-            updateChunks();
-            flatShader.use();
+            baseShader.use();
+            pos = getPosition();
             computeMatricesFromInputs(window);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glm::mat4 ProjectionMatrix = getProjectionMatrix();
             glm::mat4 ViewMatrix = getViewMatrix();
-            flatShader.setMat4("mv_matrix", ViewMatrix);
-            flatShader.setMat4("proj_matrix", ProjectionMatrix);
-            flatShader.setVec3("lightPos", getPosition());
-            flatShader.setVec3("cameraDir", getDirection());
-            glBindVertexArray(infinitevao);
-            glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
-            for (int i = 0;i < 27;i++) {
-                if (infiniteTris[i].size()) {
-                    glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
-                    glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
-                    glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
-                    glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
-                    glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+            baseShader.setMat4("mv_matrix", ViewMatrix);
+            baseShader.setMat4("proj_matrix", ProjectionMatrix);
+            baseShader.setVec3("lightPos", getPosition());
+            baseShader.setVec3("cameraDir", getDirection());
+            glBindVertexArray(vaot);
+            for (int i = 0;i < xrange * yrange * zrange;i++) {
+                if (indexed_vertices[i].size()) {
+                    glBindBuffer(GL_ARRAY_BUFFER, vbot);
+                    glBufferData(GL_ARRAY_BUFFER, indexed_vertices[i].size() * sizeof(glm::vec3), &indexed_vertices[i][0], GL_STATIC_DRAW);
+
+                    glBindBuffer(GL_ARRAY_BUFFER, nbot);
+                    glBufferData(GL_ARRAY_BUFFER, indexed_normals[i].size() * sizeof(glm::vec3), &indexed_normals[i][0], GL_STATIC_DRAW);
+
+                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
+                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices[i].size() * sizeof(unsigned short), &indices[i][0], GL_STATIC_DRAW);
+                    glDrawElements(GL_TRIANGLES, indices[i].size(), GL_UNSIGNED_SHORT, (void*)(0));
                 }
             }
         }
         else {
-            generateTriangles(1, 27, 0, 0, 0, getPosition() - glm::vec3(0.5f));
+            if(infinite == 1)
+                updateChunks();
+            else
+                generateTriangles(1, 27, 0, 0, 0, getPosition() - glm::vec3(0.5f));
             flatShader.use();
             computeMatricesFromInputs(window);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1053,15 +995,26 @@ int main() {
             flatShader.setVec3("cameraDir", getDirection());
             glBindVertexArray(infinitevao);
             glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
-            for (int i = 27;i < 28;i++) {
-                if (infiniteTris[i].size()) {
-                    glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
-                    glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
-                    glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
-                    glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
-                    glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+            if(infinite == 1)
+                for (int i = 0;i < 27;i++) {
+                    if (infiniteTris[i].size()) {
+                        glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
+                        glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
+                        glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
+                        glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
+                        glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+                    }
                 }
-            }
+            else
+                for (int i = 27;i < 28;i++) {
+                    if (infiniteTris[i].size()) {
+                        glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
+                        glBufferData(GL_ARRAY_BUFFER, infiniteTris[i].size() * sizeof(glm::vec3), &infiniteTris[i][0], GL_STATIC_DRAW);
+                        glBindBuffer(GL_ARRAY_BUFFER, infinitenorm);
+                        glBufferData(GL_ARRAY_BUFFER, infiniteNorm[i].size() * sizeof(glm::vec3), &infiniteNorm[i][0], GL_STATIC_DRAW);
+                        glDrawArrays(GL_TRIANGLES, 0, infiniteTris[i].size());
+                    }
+                }
         }
         glBindFramebuffer(GL_READ_FRAMEBUFFER, mul_fbo);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, fbo);
@@ -1070,8 +1023,6 @@ int main() {
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         glDisable(GL_DEPTH_TEST);
-
-
 
         ImGui::SetNextWindowSize(ImVec2(1920.0f, 1080.0f), 0);
         ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), 0);

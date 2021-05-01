@@ -11,13 +11,20 @@ glm::mat4 ProjectionMatrix;///<Output Projection Matrix
 glm::vec3 position = glm::vec3(1.0f, 0.0f, 0.0f);///<Initial position on +Z
 float horizontalAngle = 3.14f;///<Initial horizontal angle : toward -Z
 float verticalAngle = 0.0f;///<Initial vertical angle : none
-float initialFoV = 45.0f;///<Initial Field of View
 float speed = 0.3f;///<Speed of viweing
 float mouseSpeed = 0.001f;///<Cursor movement speed
-float FoV = initialFoV;///<Initial Field Of View
+float FoV = 45.0f;///<Initial Field Of View
 glm::vec3 center;///<Center vector
 glm::vec3 up;//Up vector
 glm::vec3 direction;//Direction
+void resetCamera() {
+	position = glm::vec3(1.0f, 0.0f, 0.0f);
+	horizontalAngle = 3.14f;
+	verticalAngle = 0.0f;
+	speed = 0.3f;
+	mouseSpeed = 0.001f;
+	FoV = 45.0f;
+}
 glm::mat4 getViewMatrix() {
 	return ViewMatrix;
 }
