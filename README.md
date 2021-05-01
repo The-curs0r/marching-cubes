@@ -2,6 +2,11 @@
 
 Implementation of marching cubes algorithm in C++ .
 
+## About
+* Vertex coordinates and face normals generated on the GPU using a compute shader.
+* Simplex noise at each point used as density function.
+* For smooth (Gouraud) shading, vertices are indexed and the vertex normals are calculated on the CPU.
+
 ## How To Run This On Windows
 * Clone the repository including the submodules using : 
 ```properties

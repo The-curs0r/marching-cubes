@@ -46,33 +46,46 @@ using namespace gl;
 GLFWwindow* window;
 const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
-glm::vec3 pos = glm::vec3(0.0f, 0.0f, 2.0f);
-glm::vec3 prevPos;
-GLuint infinitevao, infinitevbo, infinitenorm;
 
-GLuint vaot, vbot, nbot, ebot;
-GLuint fbo, resTex, resDep;
-GLuint mul_fbo, mul_resTex, mul_resDep;
-ImVec2 vMin, vMax;
-double xpos, ypos; //For mouse input
-int takeImage = 0;
-bool AAFlag = false, prevAAFlag = false;
+//Number of chunks. Each chunk is a cube.
 const int xrange = 5;
 const int yrange = 3;
 const int zrange = 5;
+//Number of cubes in each chunk
+const int numCubes = 32; //Change in compute shader too
+//Side length of each chunk
+float length = 1.0f;
+
+glm::vec3 pos = glm::vec3(0.0f, 0.0f, 2.0f);
+glm::vec3 prevPos;
+
+//VAOs and VBOs
+GLuint infinitevao, infinitevbo, infinitenorm;
+GLuint vaot, vbot, nbot, ebot;
+//Framebuffers and textures
+GLuint fbo, resTex, resDep;
+GLuint mul_fbo, mul_resTex, mul_resDep;
+//Screen Coordinates and mouse position
+ImVec2 vMin, vMax;
+double xpos, ypos;
+//Utility variables
+int takeImage = 0;
+bool AAFlag = false, prevAAFlag = false;
+int infinite = 0;
+//Array of vectors to contain triangle vertices, normals and indices data.
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
 std::vector<glm::vec3> finalNorm[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
 std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to stored indexed normals
-int infinite = 0;
 std::vector<glm::vec3> infiniteTris[28];
 std::vector<glm::vec3> infiniteNorm[28];
+//Vertex struct to copy output data from GPU
 struct vertexData {
     glm::vec4  vertexPos;
     glm::vec4  vertexNormal;
 };
-
+//Help message
 int helpFlag = 1;
 std::string helpString = "H : Toggle Help window\n"
 "T : Take Screenshot\n"
@@ -80,7 +93,7 @@ std::string helpString = "H : Toggle Help window\n"
 "Q : Toggle anti-aliasing\n"
 "ESC : Exit"
 ;
-
+//Triangle table used in marching cubes algorithm 
 int triTablea[256][16] =
 { {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
 {0, 8, 3, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1},
@@ -578,10 +591,13 @@ void processInput(GLFWwindow* window) {
     return;
 }
 void cleanUp() {
+
+    //Destroy context
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
+    //Destroy window
     glfwDestroyWindow(window);
     glfwTerminate();
 
@@ -618,9 +634,6 @@ void cleanUp() {
     return;
 }
 void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, glm::vec3 pos) {
-    const int numCubes = 32; //Change in compute shader too
-    float length = 1.0f;
-
     int imax = flag ? 1 : xrange;
     int jmax = flag ? 1 : yrange;
     int kmax = flag ? 1 : zrange;
