@@ -3,7 +3,7 @@
 #include <glm/glm.hpp>
 #include "vboIndexer.hpp"
 #include <string.h>
-
+#include <iostream>
 struct PackedVertex {
 	glm::vec3 position;
 	glm::vec3 normal;
@@ -36,7 +36,7 @@ void indexVBO(
 
 	for (unsigned int i = 0; i < in_vertices.size(); i++) {
 
-		PackedVertex packed = { in_vertices[i], in_normals[i] };
+		PackedVertex packed = { in_vertices[i], glm::vec3(0.0f) };
 		unsigned short index;
 		bool found = getSimilarVertexIndex(packed, VertexToOutIndex, index);
 		if (found) { // A similar vertex is already in the VBO, use it instead !

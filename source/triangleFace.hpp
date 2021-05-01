@@ -10,12 +10,15 @@ public:
 	int indices[3];
 	glm::vec3 normal = glm::vec3(0.0f);
 	//Constructors
-	triangleFace(int id, int v1, int v2, int v3, std::vector<glm::vec3> vertices) {
+	triangleFace(int id, int v1, int v2, int v3, std::vector<glm::vec3> vertices, std::vector<glm::vec3> normals) {
 		ID = id;
 		indices[0] = v1;
 		indices[1] = v2;
 		indices[2] = v3;
-		normal = glm::cross(vertices[v2] - vertices[v1], vertices[v3] - vertices[v1]);
+		normal = glm::normalize(glm::cross(vertices[v2] - vertices[v1], vertices[v3] - vertices[v1]));
+		//if((normal != normals[v2]) || (normal != normals[v1]) || (normal != normals[v3]))
+		//	std::cout << "proba\n";
+		//normal = normals[v1];
 	}
 };
 #endif

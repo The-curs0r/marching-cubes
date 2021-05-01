@@ -139,22 +139,22 @@ void main(void)
             output_tri_data[i + 1 + outputIndex].vertexPos = vec4(0.0f, 0.0f, 0.0f, 0.0f);
             output_tri_data[i + 2 + outputIndex].vertexPos = vec4(0.0f, 0.0f, 0.0f, 0.0f);
 
-            output_tri_data[i + outputIndex].vertexNormal += vec4(0.0f);
-            output_tri_data[i + 1 + outputIndex].vertexNormal += vec4(0.0f);
-            output_tri_data[i + 1 + outputIndex].vertexNormal += vec4(0.0f);
+            output_tri_data[i + outputIndex].vertexNormal = vec4(0.0f);
+            output_tri_data[i + 1 + outputIndex].vertexNormal = vec4(0.0f);
+            output_tri_data[i + 1 + outputIndex].vertexNormal = vec4(0.0f);
             continue;
         }
         vec3 v1 = edgeCoords[triTable[indexa][i]];
         vec3 v2 = edgeCoords[triTable[indexa][i+1]];
         vec3 v3 = edgeCoords[triTable[indexa][i+2]];
-        vec3 faceNormal = cross(v3 - v1, v2 - v1);
+        vec3 faceNormal = normalize(cross(v2 - v1, v3 - v1));
         output_tri_data[i + outputIndex].vertexPos = vec4(1.0f, v1);
         output_tri_data[i + 1 + outputIndex].vertexPos = vec4(1.0f, v2);
         output_tri_data[i + 2 + outputIndex].vertexPos = vec4(1.0f, v3);
         
-        output_tri_data[i + outputIndex].vertexNormal += vec4(1.0f, faceNormal);
-        output_tri_data[i + 1 + outputIndex].vertexNormal += vec4(1.0f, faceNormal);
-        output_tri_data[i + 1 + outputIndex].vertexNormal += vec4(1.0f, faceNormal);
+        output_tri_data[i + outputIndex].vertexNormal = vec4(1.0f, faceNormal);
+        output_tri_data[i + 1 + outputIndex].vertexNormal = vec4(1.0f, faceNormal);
+        output_tri_data[i + 2 + outputIndex].vertexNormal = vec4(1.0f, faceNormal);
 
     }
 }

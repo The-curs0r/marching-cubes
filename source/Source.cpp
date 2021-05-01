@@ -603,27 +603,7 @@ void cleanUp() {
 void calcTris() {
     std::vector<triangleFace> faces;
     for (int i = 0;i < xrange * yrange * zrange;i++) {
-        int flag = 0;
-        if(flag)
-            indexVBO(finalTris[i], finalNorm[i], indices[i], indexed_vertices[i], indexed_normals[i]);
-        else {
-            indexVBO(finalTris[i], indices[i], indexed_vertices[i]);
-            finalTris[i].clear();
-            finalNorm[i].clear();
-            for (int j = 0;j < indices[i].size();j += 3) {
-                triangleFace temp = triangleFace(j / 3, indices[i][j], indices[i][j + 1], indices[i][j + 2], indexed_vertices[i]);
-                faces.push_back(temp);
-            }
-            for (int j = 0;j < indexed_vertices[i].size();j++) {
-                indexed_normals[i].push_back(glm::vec3(0.0f));
-            }
-            for (int j = 0;j < faces.size();j++) {
-                indexed_normals[i][faces[j].indices[0]] += faces[j].normal;
-                indexed_normals[i][faces[j].indices[1]] += faces[j].normal;
-                indexed_normals[i][faces[j].indices[2]] += faces[j].normal;
-            }
-            faces.clear();
-        }
+        indexVBO(finalTris[i], finalNorm[i], indices[i], indexed_vertices[i], indexed_normals[i]);
     }
     glGenBuffers(1, &vbot);
     glGenBuffers(1, &nbot);
@@ -641,7 +621,9 @@ void calcTris() {
     glGenBuffers(1, &ebot);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
 }
-
+void dbg(glm::vec3 pt) {
+    std::cout << pt.x << " " << pt.y << " " << pt.z << "\n";
+}
 struct vertexData {
     glm::vec4  vertexPos;
     glm::vec4  vertexNormal;
@@ -665,7 +647,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                     QueryPerformanceCounter(&t3);
 #endif
 
-                    Shader computeShader("../source/marchShader.computeShader.glsl");
+                    Shader computeShader("marchShader.computeShader.glsl");
                     computeShader.use();
                     computeShader.setFloat("inc", length / numCubes);
                     computeShader.setInt("numCubes", numCubes);
@@ -709,21 +691,23 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
 #endif
                     std::vector<glm::vec3> tris;
                     std::vector<glm::vec3> normals;
-                    //int cnt = 0;
                     while (NUM_ELEMENTS) {
-                        NUM_ELEMENTS -= 1;
+                        NUM_ELEMENTS -= 3;
                         if ((*ptr).vertexPos.x) {
                             tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
                             normals.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
-                            //if (normals[normals.size() - 1].x > 2.0f)
-                                //cnt++;
+                            ptr++;
+                            tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                            normals.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
+                            ptr++;
+                            tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                            normals.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                             ptr++;
                         }
                         else {
-                            ptr += 1;
+                            ptr += 3;
                         }
                     }
-                    //std::cout <<cnt<< "er\n";
 #if defined(_DEBUG) && defined(_WIN32)
                     QueryPerformanceCounter(&t4);
                     elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
@@ -770,7 +754,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glGenBuffers(2, data_buffer);
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(glm::vec4), NULL, GL_DYNAMIC_COPY);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(vertexData), NULL, GL_DYNAMIC_COPY);
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
         glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
@@ -778,7 +762,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glShaderStorageBlockBinding(computeShader.ID, 0, 0);
         glShaderStorageBlockBinding(computeShader.ID, 1, 1);
 
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
 
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
@@ -794,25 +778,22 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         std::cout << elapsedTime << "ms to generate vertices for chunk at( " << pos.x << "," << pos.y << "," << pos.z << " )\n";
         QueryPerformanceCounter(&t1);
 #endif
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
-        glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
+        vertexData* ptr = (vertexData*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vertexData) * NUM_ELEMENTS, GL_MAP_READ_BIT);
         std::vector<glm::vec3> tris;
         std::vector<glm::vec3> norm;
-        int i = 0;
         while (NUM_ELEMENTS) {
             NUM_ELEMENTS -= 3;
-            if ((*ptr).x) {
-                i += 3;
-                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+            if ((*ptr).vertexPos.x) {
+                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                 ptr++;
-                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                 ptr++;
-                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                 ptr++;
-                glm::vec3 normal = glm::normalize(glm::cross(tris[i - 1] - tris[i - 3], tris[i - 2] - tris[i - 3]));
-                norm.push_back(normal);
-                norm.push_back(normal);
-                norm.push_back(normal);
             }
             else {
                 ptr += 3;
