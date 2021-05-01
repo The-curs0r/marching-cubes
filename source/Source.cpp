@@ -38,7 +38,6 @@ using namespace gl;
 #include "shader.hpp"
 #include "control.hpp"
 #include "vboIndexer.hpp"
-#include "triangleFace.hpp"
 
 //extern "C" {
 //    _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
@@ -47,7 +46,7 @@ using namespace gl;
 GLFWwindow* window;
 const int SCR_WIDTH = 1920;
 const int SCR_HEIGHT = 1080;
-glm::vec3 pos = glm::vec3(0.0f,0.0f,2.0f);
+glm::vec3 pos = glm::vec3(0.0f, 0.0f, 2.0f);
 
 GLuint infinitevao, infinitevbo, infinitenorm;
 
@@ -62,6 +61,7 @@ const int xrange = 5;
 const int yrange = 3;
 const int zrange = 5;
 std::vector<glm::vec3> finalTris[xrange * yrange * zrange];
+std::vector<glm::vec3> finalNorm[xrange * yrange * zrange];
 std::vector<unsigned short> indices[xrange * yrange * zrange];///<Vector to store indicies of triangles to be plotted
 std::vector<glm::vec3> indexed_vertices[xrange * yrange * zrange];///<Vector to stored indexed vertices
 std::vector<glm::vec3> indexed_normals[xrange * yrange * zrange];///<Vector to stored indexed normals
@@ -561,10 +561,10 @@ void processInput(GLFWwindow* window)
             takeSS();
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_RELEASE)
-            AAFlag= !AAFlag;
+            AAFlag = !AAFlag;
     if (glfwGetKey(window, GLFW_KEY_I) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_I) == GLFW_RELEASE)
-            infinite = (infinite+1)%3;
+            infinite = (infinite + 1) % 3;
     if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS)
         if (glfwGetKey(window, GLFW_KEY_H) == GLFW_RELEASE)
             helpFlag = !helpFlag;
@@ -600,23 +600,8 @@ void cleanUp() {
 }
 
 void calcTris() {
-    std::vector<triangleFace> faces;
     for (int i = 0;i < xrange * yrange * zrange;i++) {
-        indexVBO(finalTris[i], indices[i], indexed_vertices[i]);
-        finalTris[i].clear();
-        for (int j = 0;j < indices[i].size();j += 3) {
-            triangleFace temp = triangleFace(j / 3, indices[i][j], indices[i][j + 1], indices[i][j + 2], indexed_vertices[i]);
-            faces.push_back(temp);
-        }
-        for (int j = 0;j < indexed_vertices[i].size();j++) {
-            indexed_normals[i].push_back(glm::vec3(0.0f));
-        }
-        for (int j = 0;j < faces.size();j++) {
-            indexed_normals[i][faces[j].indices[0]] += faces[j].normal;
-            indexed_normals[i][faces[j].indices[1]] += faces[j].normal;
-            indexed_normals[i][faces[j].indices[2]] += faces[j].normal;
-        }
-        faces.clear();
+        indexVBO(finalTris[i], finalNorm[i], indices[i], indexed_vertices[i], indexed_normals[i]);
     }
     glGenBuffers(1, &vbot);
     glGenBuffers(1, &nbot);
@@ -634,8 +619,13 @@ void calcTris() {
     glGenBuffers(1, &ebot);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebot);
 }
-
-
+void dbg(glm::vec3 pt) {
+    std::cout << pt.x << " " << pt.y << " " << pt.z << "\n";
+}
+struct vertexData {
+    glm::vec4  vertexPos;
+    glm::vec4  vertexNormal;
+};
 void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, glm::vec3 pos) {
     const int numCubes = 32; //Change in compute shader too
     float length = 1.0f;
@@ -647,7 +637,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
     QueryPerformanceFrequency(&frequency);
     QueryPerformanceCounter(&t1);
 #endif
-    if (!flag) {  
+    if (!flag) {
         for (int i = 0;i < xrange;i++) {
             for (int j = 0;j < yrange;j++) {
                 for (int k = 0;k < zrange;k++) {
@@ -663,11 +653,12 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
 
                     GLuint  data_buffer[2];
                     int NUM_ELEMENTS = numCubes * numCubes * numCubes * 15;
+                    //NUM_ELEMENTS *= 2;
 
                     glGenBuffers(2, data_buffer);
 
                     glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
-                    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(glm::vec4), NULL, GL_DYNAMIC_COPY);
+                    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(vertexData), NULL, GL_DYNAMIC_COPY);
 
                     glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
                     glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
@@ -675,36 +666,44 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                     glShaderStorageBlockBinding(computeShader.ID, 0, 0);
                     glShaderStorageBlockBinding(computeShader.ID, 1, 1);
 
-                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
 
                     glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16);
                     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
 
                     computeShader.use();
 
-                    glDispatchCompute(numCubes/8, numCubes/8, numCubes/8);
+                    glDispatchCompute(numCubes / 8, numCubes / 8, numCubes / 8);
 
                     glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
                     glFinish();
 
-                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+                    glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
 
-                    glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+                    vertexData* ptr = (vertexData*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vertexData) * NUM_ELEMENTS, GL_MAP_READ_BIT);
 #if defined(_DEBUG) && defined(_WIN32)
                     QueryPerformanceCounter(&t4);
                     elapsedTime = (t4.QuadPart - t3.QuadPart) * 1000.0 / frequency.QuadPart;
-                    std::cout << elapsedTime << "ms to generate vertices for chunk at( "<<i<<","<<j<<"," << k<<" )\n";
+                    std::cout << elapsedTime << "ms to generate vertices for chunk at( " << i << "," << j << "," << k << " )\n";
                     QueryPerformanceCounter(&t3);
 #endif
                     std::vector<glm::vec3> tris;
-
-                    while (NUM_ELEMENTS--) {
-                        if ((*ptr).x) {
-                            tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                    std::vector<glm::vec3> normals;
+                    while (NUM_ELEMENTS) {
+                        NUM_ELEMENTS -= 3;
+                        if ((*ptr).vertexPos.x) {
+                            tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                            normals.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
+                            ptr++;
+                            tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                            normals.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
+                            ptr++;
+                            tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                            normals.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                             ptr++;
                         }
                         else {
-                            ptr += 1;
+                            ptr += 3;
                         }
                     }
 #if defined(_DEBUG) && defined(_WIN32)
@@ -716,12 +715,13 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
                     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
                     glDeleteBuffers(2, data_buffer);
                     finalTris[i * zrange * yrange + j * zrange + k].insert(finalTris[i * zrange * yrange + j * zrange + k].end(), tris.begin(), tris.end());
+                    finalNorm[i * zrange * yrange + j * zrange + k].insert(finalNorm[i * zrange * yrange + j * zrange + k].end(), normals.begin(), normals.end());
                     computeShader.deleteProg();
                 }
             }
         }
 #if defined(_DEBUG) && defined(_WIN32)
-        std::cout <<"\n";
+        std::cout << "\n";
         QueryPerformanceCounter(&t2);
         elapsedTime = (t2.QuadPart - t1.QuadPart) * 1000.0 / frequency.QuadPart;
         std::cout << elapsedTime << "ms to generate all chunks\n";
@@ -752,7 +752,7 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glGenBuffers(2, data_buffer);
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[0]);
-        glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(glm::vec4), NULL, GL_DYNAMIC_COPY);
+        glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_ELEMENTS * sizeof(vertexData), NULL, GL_DYNAMIC_COPY);
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, data_buffer[1]);
         glBufferData(GL_SHADER_STORAGE_BUFFER, 256 * 16 * sizeof(int), NULL, GL_DYNAMIC_COPY);
@@ -760,13 +760,13 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         glShaderStorageBlockBinding(computeShader.ID, 0, 0);
         glShaderStorageBlockBinding(computeShader.ID, 1, 1);
 
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
 
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 1, data_buffer[1], 0, sizeof(int) * 256 * 16);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(int) * 256 * 16, triTablea);
 
         computeShader.use();
-        glDispatchCompute(numCubes/8, numCubes/8, numCubes/8);
+        glDispatchCompute(numCubes / 8, numCubes / 8, numCubes / 8);
 
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
         glFinish();
@@ -776,25 +776,22 @@ void generateTriangles(int flag, int ind, float xOff, float yOff, float zOff, gl
         std::cout << elapsedTime << "ms to generate vertices for chunk at( " << pos.x << "," << pos.y << "," << pos.z << " )\n";
         QueryPerformanceCounter(&t1);
 #endif
-        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(glm::vec4) * NUM_ELEMENTS);
-        glm::vec4* ptr = (glm::vec4*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(glm::vec4) * NUM_ELEMENTS, GL_MAP_READ_BIT);
+        glBindBufferRange(GL_SHADER_STORAGE_BUFFER, 0, data_buffer[0], 0, sizeof(vertexData) * NUM_ELEMENTS);
+        vertexData* ptr = (vertexData*)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(vertexData) * NUM_ELEMENTS, GL_MAP_READ_BIT);
         std::vector<glm::vec3> tris;
         std::vector<glm::vec3> norm;
-        int i = 0;
         while (NUM_ELEMENTS) {
             NUM_ELEMENTS -= 3;
-            if ((*ptr).x) {
-                i += 3;
-                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+            if ((*ptr).vertexPos.x) {
+                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                 ptr++;
-                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                 ptr++;
-                tris.push_back(glm::vec3((*ptr).y, (*ptr).z, (*ptr).w));
+                tris.push_back(glm::vec3((*ptr).vertexPos.y, (*ptr).vertexPos.z, (*ptr).vertexPos.w));
+                norm.push_back(glm::vec3((*ptr).vertexNormal.y, (*ptr).vertexNormal.z, (*ptr).vertexNormal.w));
                 ptr++;
-                glm::vec3 normal = glm::normalize(glm::cross(tris[i-1]-tris[i-3], tris[i - 2] - tris[i - 3]));
-                norm.push_back(normal);
-                norm.push_back(normal);
-                norm.push_back(normal);
             }
             else {
                 ptr += 3;
@@ -873,7 +870,7 @@ void updateChunks() {
     }
     else if ((curPos.x - prevPos.x) < -switchDis) {
         prevPos.x -= 1.0f;
-        for (int i = 2;i >0;i--)
+        for (int i = 2;i > 0;i--)
         {
             for (int j = 0;j < 3;j++)
             {
@@ -921,7 +918,7 @@ void updateChunks() {
         prevPos.y -= 1.0f;
         for (int i = 0;i < 3;i++)
         {
-            for (int j = 2;j >0 ;j--)
+            for (int j = 2;j > 0;j--)
             {
                 for (int k = 0;k < 3;k++) {
                     infiniteTris[i * 3 * 3 + j * 3 + k] = infiniteTris[i * 3 * 3 + j * 3 + k - 3];
@@ -992,13 +989,13 @@ int main() {
         return -1;
     pos = getPosition();
     prevPos = pos;
-    generateTriangles(0,NULL,NULL,NULL,NULL,glm::vec3(NULL));
+    generateTriangles(0, NULL, NULL, NULL, NULL, glm::vec3(NULL));
     for (int i = 0;i < 3;i++)
     {
         for (int j = 0;j < 3;j++)
         {
             for (int k = 0;k < 3;k++) {
-                    generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
+                generateTriangles(1, i * 3 * 3 + j * 3 + k, (float)i - 1.5f, (float)j - 1.5f, (float)k - 1.5f, prevPos);
             }
         }
     }
@@ -1020,8 +1017,8 @@ int main() {
         if (!infinite) {
             draw(baseShader);
         }
-        else if(infinite == 1) {
-            updateChunks();           
+        else if (infinite == 1) {
+            updateChunks();
             flatShader.use();
             computeMatricesFromInputs(window);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1029,7 +1026,7 @@ int main() {
             glm::mat4 ViewMatrix = getViewMatrix();
             flatShader.setMat4("mv_matrix", ViewMatrix);
             flatShader.setMat4("proj_matrix", ProjectionMatrix);
-            flatShader.setVec3("lightPos", getPosition() );
+            flatShader.setVec3("lightPos", getPosition());
             flatShader.setVec3("cameraDir", getDirection());
             glBindVertexArray(infinitevao);
             glBindBuffer(GL_ARRAY_BUFFER, infinitevbo);
@@ -1044,7 +1041,7 @@ int main() {
             }
         }
         else {
-            generateTriangles(1, 27, 0, 0, 0, getPosition()-glm::vec3(0.5f));
+            generateTriangles(1, 27, 0, 0, 0, getPosition() - glm::vec3(0.5f));
             flatShader.use();
             computeMatricesFromInputs(window);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -1075,9 +1072,9 @@ int main() {
         glDisable(GL_DEPTH_TEST);
 
 
-        
+
         ImGui::SetNextWindowSize(ImVec2(1920.0f, 1080.0f), 0);
-        ImGui::SetNextWindowPos(ImVec2(0.0f,0.0f), 0);
+        ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), 0);
         ImGui::Begin("OpenGL Result");
         {
             ImGui::BeginChild("OpenGL Result");

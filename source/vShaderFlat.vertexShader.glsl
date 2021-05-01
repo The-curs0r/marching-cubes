@@ -17,7 +17,7 @@ out VS_OUT{
 
 void main(void) {
 	vs_out.vUv = vertex.xy * madd + madd;
-	mat4 normalMatrix = transpose(inverse(mv_matrix));
+	mat4 normalMatrix = -1.0*transpose(inverse(mv_matrix));
 	vs_out.normal = (normalMatrix * vec4(normal, 0.)).xyz;
 	//vs_out.normal = (normalMatrix * vec4(1.0,1.0,1.0, 0.)).xyz;
 	//vs_out.normal = normal;

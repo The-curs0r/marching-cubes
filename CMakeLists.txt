@@ -23,7 +23,6 @@ set(HEADERS
 "${SRC_DIR}/control.hpp" 
 "${SRC_DIR}/vboIndexer.hpp" 
 "${SRC_DIR}/shader.hpp" 
-"${SRC_DIR}/triangleFace.hpp" 
 "${LIB_DIR}/imgui/imgui.h" 
 "${LIB_DIR}/imgui/imconfig.h" 
 "${LIB_DIR}/imgui/imgui_internal.h" 

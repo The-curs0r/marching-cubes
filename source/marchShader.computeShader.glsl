@@ -3,9 +3,15 @@ layout(local_size_x = 8, local_size_y = 8, local_size_z = 8) in;
 uniform vec3 stPoint;
 uniform float inc;
 const int numCubes = 32;
-layout(binding = 0) writeonly buffer block1
+
+struct vertexData {
+    vec4  vertexPos;
+    vec4  vertexNormal;
+};
+
+layout(std140, binding = 0) buffer block1
 {
-    vec4 output_tri_data[numCubes * numCubes * numCubes * 15];
+    vertexData output_tri_data[numCubes * numCubes * numCubes * 15];
 };
 layout(binding = 1) readonly buffer block2
 {
@@ -129,14 +135,26 @@ void main(void)
     uint outputIndex = (gl_WorkGroupID.x * 4 * 4 + gl_WorkGroupID.y * 4 + gl_WorkGroupID.z) * 512 * 15 + (gl_LocalInvocationID.x * 8 * 8 + gl_LocalInvocationID.y * 8 + gl_LocalInvocationID.z) * 15;
     for (int i = 0;i < 15;i += 3) {
         if (i >= edgeTriangle[indexa] * 3) {
-            output_tri_data[i + outputIndex] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-            output_tri_data[i + 1 + outputIndex] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
-            output_tri_data[i + 2 + outputIndex] = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            output_tri_data[i + outputIndex].vertexPos = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            output_tri_data[i + 1 + outputIndex].vertexPos = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+            output_tri_data[i + 2 + outputIndex].vertexPos = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+
+            output_tri_data[i + outputIndex].vertexNormal = vec4(0.0f);
+            output_tri_data[i + 1 + outputIndex].vertexNormal = vec4(0.0f);
+            output_tri_data[i + 1 + outputIndex].vertexNormal = vec4(0.0f);
             continue;
         }
-        output_tri_data[i + outputIndex] = vec4(1.0f, edgeCoords[triTable[indexa][i]]);
-        output_tri_data[i + 1 + outputIndex] = vec4(1.0f, edgeCoords[triTable[indexa][i+1]]);
-        output_tri_data[i + 2 + outputIndex] = vec4(1.0f, edgeCoords[triTable[indexa][i + 2]]);
-        //output_tri_data[i + (gl_WorkGroupID.x * 4 * 4 + gl_WorkGroupID.y * 4 + gl_WorkGroupID.z) * 512 * 15 + (gl_LocalInvocationID.x * 8 * 8 + gl_LocalInvocationID.y * 8 + gl_LocalInvocationID.z) * 15] = vec4((gl_WorkGroupID.x * 4 * 4 + gl_WorkGroupID.y * 4 + gl_WorkGroupID.z) * 512 * 15 + (gl_LocalInvocationID.x * 8 * 8 + gl_LocalInvocationID.y * 8 + gl_LocalInvocationID.z) * 15);
+        vec3 v1 = edgeCoords[triTable[indexa][i]];
+        vec3 v2 = edgeCoords[triTable[indexa][i+1]];
+        vec3 v3 = edgeCoords[triTable[indexa][i+2]];
+        vec3 faceNormal = normalize(cross(v2 - v1, v3 - v1));
+        output_tri_data[i + outputIndex].vertexPos = vec4(1.0f, v1);
+        output_tri_data[i + 1 + outputIndex].vertexPos = vec4(1.0f, v2);
+        output_tri_data[i + 2 + outputIndex].vertexPos = vec4(1.0f, v3);
+        
+        output_tri_data[i + outputIndex].vertexNormal = vec4(1.0f, faceNormal);
+        output_tri_data[i + 1 + outputIndex].vertexNormal = vec4(1.0f, faceNormal);
+        output_tri_data[i + 2 + outputIndex].vertexNormal = vec4(1.0f, faceNormal);
+
     }
 }
